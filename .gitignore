@@ -1,0 +1,20 @@
+settings.env
+secrets/
+build/
+dist/
+*.swp
+*.swo
+
+# Local session memory
+CHATHISTORY.md
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+.idea/
+.vscode/
+
+# Transient diagram export sidecars
+*.cmapx

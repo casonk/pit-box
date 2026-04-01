@@ -1,0 +1,65 @@
+@startuml repo-architecture
+!pragma layout smetana
+
+title pit-box — Repository Architecture
+
+rectangle "Config Input" {
+    file "settings.env" as ENV
+}
+
+rectangle "Script Pipeline" {
+    component "render_configs.sh" as RENDER
+    component "generate_keys.sh" as KEYGEN
+    component "install.sh\ninstall_ubuntu.sh\ninstall_fedora.sh" as INSTALL
+    component "enable_ip_forwarding.sh" as IPFWD
+    component "configure_ufw.sh\nconfigure_firewalld.sh" as FIREWALL
+    component "harden_ssh.sh" as HARDEN
+    component "package_client.sh" as PACKAGE
+    component "validate.sh" as VALIDATE
+}
+
+rectangle "Build Outputs (gitignored)" {
+    artifact "build/server/wg0.conf" as WG_SERVER
+    artifact "build/client/<peer>.conf" as WG_CLIENT
+    artifact "build/ssh/sshd_config.snippet" as SSH_SNIPPET
+}
+
+rectangle "Distribution (gitignored)" {
+    artifact "dist/pit-box-client.zip" as DIST
+}
+
+rectangle "Secrets (gitignored)" {
+    artifact "secrets/<peer>.privkey\nsecrets/<peer>.pubkey\nsecrets/psk" as KEYS
+}
+
+rectangle "Running System" {
+    component "WireGuard Tunnel\n(UDP, public interface)" as WG_SVC
+    component "SSH\n(WireGuard interface only)" as SSH_SVC
+    component "Optional LAN Services\n(WireGuard interface only)" as LAN_SVC
+}
+
+ENV --> RENDER
+RENDER --> WG_SERVER
+RENDER --> WG_CLIENT
+RENDER --> SSH_SNIPPET
+
+KEYGEN --> KEYS
+KEYS ..> RENDER : referenced by
+
+INSTALL --> WG_SVC : installs WireGuard
+IPFWD --> WG_SVC : enables forwarding
+FIREWALL --> WG_SVC : opens UDP port
+SSH_SNIPPET --> HARDEN
+HARDEN --> SSH_SVC : hardens sshd
+
+WG_CLIENT --> PACKAGE
+PACKAGE --> DIST
+
+VALIDATE --> WG_SERVER : checks
+VALIDATE --> WG_CLIENT : checks
+VALIDATE --> SSH_SNIPPET : checks
+
+WG_SVC --> SSH_SVC : tunneled access
+WG_SVC --> LAN_SVC : optional (lan/full-tunnel mode)
+
+@enduml
