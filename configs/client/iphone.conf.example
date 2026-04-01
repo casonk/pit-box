@@ -1,0 +1,10 @@
+[Interface]
+Address = 10.8.0.2/24
+PrivateKey = IPHONE_PRIVATE_KEY
+DNS = 192.168.1.1
+
+[Peer]
+PublicKey = SERVER_PUBLIC_KEY
+Endpoint = your-ddns-name.example:51820
+AllowedIPs = 10.8.0.0/24, 192.168.1.0/24
+PersistentKeepalive = 25
