@@ -20,6 +20,7 @@ Maintain a secure, minimal, and understandable home remote-access stack based on
 - `./util-repos/shock-relay`: standard external-messaging utility repo
 - `./util-repos/short-circuit`: standard WireGuard VPN setup and configuration utility
 - `./util-repos/snowbridge`: standard SMB-based file-sharing and phone-access utility repo
+- `./util-repos/dyno-lab`: standard unified test bench utility repo
 
 ## Session Continuity
 
