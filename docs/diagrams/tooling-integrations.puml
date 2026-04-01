@@ -1,0 +1,75 @@
+@startuml
+title pit-box Tooling Integrations
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Monospace
+skinparam componentStyle rectangle
+skinparam linetype ortho
+rectangle ".github/workflows/ci.yml\n4 detected tools" as source_github_workflows_ci_yml #E0F2FE
+rectangle "scripts/configure_firewalld.sh\n2 detected tools" as source_scripts_configure_firewalld_sh #E0F2FE
+rectangle "scripts/configure_ufw.sh\n4 detected tools" as source_scripts_configure_ufw_sh #E0F2FE
+rectangle "scripts/enable_ip_forwarding.sh\n2 detected tools" as source_scripts_enable_ip_forwarding_sh #E0F2FE
+rectangle "scripts/generate_keys.sh\n3 detected tools" as source_scripts_generate_keys_sh #E0F2FE
+rectangle "scripts/harden_ssh.sh\n5 detected tools" as source_scripts_harden_ssh_sh #E0F2FE
+rectangle "scripts/install.sh\n0 detected tools" as source_scripts_install_sh #E0F2FE
+rectangle "scripts/install_fedora.sh\n2 detected tools" as source_scripts_install_fedora_sh #E0F2FE
+rectangle "scripts/install_ubuntu.sh\n3 detected tools" as source_scripts_install_ubuntu_sh #E0F2FE
+rectangle "scripts/package_client.sh\n4 detected tools" as source_scripts_package_client_sh #E0F2FE
+rectangle "scripts/render_configs.sh\n2 detected tools" as source_scripts_render_configs_sh #E0F2FE
+rectangle "scripts/validate.sh\n0 detected tools" as source_scripts_validate_sh #E0F2FE
+cloud "actions/checkout" as tool_actions_checkout #FEF3C7
+cloud "actions/setup-python" as tool_actions_setup_python #FEF3C7
+cloud "apt-get" as tool_apt_get #FEF3C7
+cloud "cat" as tool_cat #FEF3C7
+cloud "cp" as tool_cp #FEF3C7
+cloud "firewall-cmd" as tool_firewall_cmd #FEF3C7
+cloud "firewalld" as tool_firewalld #FEF3C7
+cloud "grep" as tool_grep #FEF3C7
+cloud "mkdir" as tool_mkdir #FEF3C7
+cloud "pip" as tool_pip #FEF3C7
+cloud "pre-commit" as tool_pre_commit #FEF3C7
+cloud "qrencode" as tool_qrencode #FEF3C7
+cloud "sed" as tool_sed #FEF3C7
+cloud "sshd" as tool_sshd #FEF3C7
+cloud "sysctl" as tool_sysctl #FEF3C7
+cloud "systemctl" as tool_systemctl #FEF3C7
+cloud "tee" as tool_tee #FEF3C7
+cloud "ufw" as tool_ufw #FEF3C7
+cloud "wg" as tool_wg #FEF3C7
+cloud "zip" as tool_zip #FEF3C7
+source_github_workflows_ci_yml --> tool_actions_checkout
+source_github_workflows_ci_yml --> tool_actions_setup_python
+source_github_workflows_ci_yml --> tool_pip
+source_github_workflows_ci_yml --> tool_pre_commit
+source_scripts_configure_firewalld_sh --> tool_firewall_cmd
+source_scripts_configure_firewalld_sh --> tool_systemctl
+source_scripts_configure_ufw_sh --> tool_cat
+source_scripts_configure_ufw_sh --> tool_grep
+source_scripts_configure_ufw_sh --> tool_sed
+source_scripts_configure_ufw_sh --> tool_ufw
+source_scripts_enable_ip_forwarding_sh --> tool_cat
+source_scripts_enable_ip_forwarding_sh --> tool_sysctl
+source_scripts_generate_keys_sh --> tool_mkdir
+source_scripts_generate_keys_sh --> tool_tee
+source_scripts_generate_keys_sh --> tool_wg
+source_scripts_harden_ssh_sh --> tool_cp
+source_scripts_harden_ssh_sh --> tool_grep
+source_scripts_harden_ssh_sh --> tool_mkdir
+source_scripts_harden_ssh_sh --> tool_sshd
+source_scripts_harden_ssh_sh --> tool_systemctl
+source_scripts_install_fedora_sh --> tool_firewalld
+source_scripts_install_fedora_sh --> tool_systemctl
+source_scripts_install_ubuntu_sh --> tool_apt_get
+source_scripts_install_ubuntu_sh --> tool_systemctl
+source_scripts_install_ubuntu_sh --> tool_ufw
+source_scripts_package_client_sh --> tool_cp
+source_scripts_package_client_sh --> tool_mkdir
+source_scripts_package_client_sh --> tool_qrencode
+source_scripts_package_client_sh --> tool_zip
+source_scripts_render_configs_sh --> tool_cat
+source_scripts_render_configs_sh --> tool_mkdir
+note as toolingGraphSummary
+Scanned 12 tooling entrypoints.
+Detected 20 third-party tools.
+end note
+@enduml
