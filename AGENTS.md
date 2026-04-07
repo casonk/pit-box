@@ -129,3 +129,14 @@ Use commit messages of the form:
 ## Human override
 
 If a human explicitly asks for a different topology, preserve their request but document the tradeoff in the README and architecture docs.
+
+## Local CI Verification
+
+Run before every push:
+
+```bash
+pre-commit run --all-files
+```
+
+Do not push changes that have not passed all checks locally.
+
