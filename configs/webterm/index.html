@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>pit-box terminal</title>
+  <link rel="stylesheet" href="/css/fontawesome.min.css">
+  <style>
+    /* No custom layout for #terminal-container — ttyd.js owns that element fully.
+       The toolbar is a fixed overlay; the last line of the terminal may sit under
+       it during long output, but the prompt scrolls into view on any keypress. */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0d1117; }
+    #pb-toolbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 52px;
+      background: #161b22ee;
+      border-top: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      z-index: 9999;
+    }
+    #pb-toolbar::-webkit-scrollbar { display: none; }
+    .pb-btn {
+      flex-shrink: 0;
+      min-width: 40px;
+      padding: 6px 10px;
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      text-align: center;
+      touch-action: manipulation;
+    }
+    .pb-btn:active { background: #1f6feb; border-color: #388bfd; color: #fff; }
+    .pb-sep {
+      width: 1px; min-width: 1px; height: 30px;
+      background: #30363d; flex-shrink: 0; margin: 0 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal-container"></div>
+
+  <div id="pb-toolbar">
+    <button class="pb-btn" data-send="&#x02;" title="tmux prefix">⌃B</button>
+    <button class="pb-btn" data-tmux="c"      title="new window">+win</button>
+    <button class="pb-btn" data-tmux="n"      title="next window">next</button>
+    <button class="pb-btn" data-tmux="p"      title="prev window">prev</button>
+    <button class="pb-btn" data-tmux="w"      title="window list">list</button>
+    <button class="pb-btn" data-tmux="&amp;"  title="kill window">kill</button>
+    <div class="pb-sep"></div>
+    <button class="pb-btn" data-send="&#x1b;[A">↑</button>
+    <button class="pb-btn" data-send="&#x1b;[B">↓</button>
+    <button class="pb-btn" data-send="&#x1b;[D">←</button>
+    <button class="pb-btn" data-send="&#x1b;[C">→</button>
+    <div class="pb-sep"></div>
+    <button class="pb-btn" data-send="&#x09;"  title="tab completion">Tab</button>
+    <button class="pb-btn" data-send="&#x1b;"  title="escape">Esc</button>
+    <button class="pb-btn" data-send="&#x03;"  title="interrupt">⌃C</button>
+    <button class="pb-btn" data-send="&#x04;"  title="EOF / logout">⌃D</button>
+    <button class="pb-btn" data-send="&#x0c;"  title="clear screen">⌃L</button>
+  </div>
+
+  <!--
+    Intercept the WebSocket constructor before ttyd.js loads so toolbar buttons
+    can reuse the same socket ttyd opens — no second tmux attachment needed.
+  -->
+  <script>
+    (function () {
+      var _WS  = window.WebSocket;
+      var sock = null;
+
+      function PatchedWS(url, proto) {
+        var ws = proto !== undefined ? new _WS(url, proto) : new _WS(url);
+        if (url.indexOf('/ws') !== -1) { sock = ws; }
+        return ws;
+      }
+      PatchedWS.prototype  = _WS.prototype;
+      PatchedWS.CONNECTING = _WS.CONNECTING;
+      PatchedWS.OPEN       = _WS.OPEN;
+      PatchedWS.CLOSING    = _WS.CLOSING;
+      PatchedWS.CLOSED     = _WS.CLOSED;
+      window.WebSocket     = PatchedWS;
+
+      function send(data) {
+        if (!sock) { return; }
+        if (sock.readyState === _WS.OPEN) {
+          sock.send('0' + data);
+        } else {
+          sock.addEventListener('open', function () { sock.send('0' + data); }, { once: true });
+        }
+      }
+
+      document.getElementById('pb-toolbar').addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-send],[data-tmux]');
+        if (!btn) { return; }
+        var raw = btn.getAttribute('data-send');
+        if (raw !== null) { send(raw); return; }
+        var chr = btn.getAttribute('data-tmux');
+        if (chr !== null) {
+          send('\x02');
+          setTimeout(function () { send(chr); }, 60);
+        }
+      });
+    }());
+  </script>
+  <script src="/js/ttyd.js"></script>
+</body>
+</html>

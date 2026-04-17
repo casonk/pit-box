@@ -1,0 +1,20 @@
+[Unit]
+Description=ttyd - Web Terminal over WireGuard VPN
+Documentation=https://github.com/tsl0922/ttyd
+After=network-online.target wg-quick@WG_INTERFACE.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Binds only to the WireGuard tunnel IP — not reachable from the public internet.
+# --ping-interval sends WebSocket keepalives so idle browser sessions stay open.
+ExecStart=/usr/bin/ttyd \
+  --interface WG_SERVER_TUNNEL_IP \
+  --port WEBTERM_PORT \
+  --ping-interval 30 \
+  login
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
