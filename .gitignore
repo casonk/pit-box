@@ -9,6 +9,11 @@ dist/
 CHATHISTORY.md
 .codex
 
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
 # Editor and OS noise
 .DS_Store
 Thumbs.db

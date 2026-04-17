@@ -11,6 +11,8 @@ A starter repository for reaching a home Linux server from an iPhone **from anyw
 
 This repo packages the design from the conversation into a reusable setup scaffold.
 
+Consent reference: [`../../doc-repos/my-consent/remote-access-and-private-files.md`](../../doc-repos/my-consent/remote-access-and-private-files.md) documents the explicit consent covering personal remote-access, private-file, and device-profile processing handled by this repo.
+
 ## Goals
 
 - Do **not** expose SSH or admin web UIs directly to the public internet
@@ -31,8 +33,11 @@ This repo packages the design from the conversation into a reusable setup scaffo
 │   │   └── iphone.conf.example
 │   ├── server
 │   │   └── wg0.conf.example
-│   └── ssh
-│       └── sshd_config.snippet
+│   ├── ssh
+│   │   └── sshd_config.snippet
+│   └── webterm
+│       ├── dnsmasq-vpn.conf.example
+│       └── ttyd.service.example
 ├── docs
 │   ├── architecture.md
 │   ├── security-model.md
@@ -41,6 +46,8 @@ This repo packages the design from the conversation into a reusable setup scaffo
     ├── install.sh
     ├── install_fedora.sh
     ├── install_ubuntu.sh
+    ├── install_webterm.sh
+    ├── rebuild_webservices.sh
     ├── generate_keys.sh
     ├── render_configs.sh
     ├── enable_ip_forwarding.sh
@@ -67,6 +74,7 @@ Home Router (UDP 51820 forwarded)
 Linux Server (WireGuard endpoint, SSH server)
   │
   ├── SSH to 10.8.0.1
+  ├── Web Terminal (ttyd) at http://10.8.0.1:7681 (VPN-only)
   ├── SMB to 192.168.1.x or 10.8.0.1
   └── Optional Cockpit / other web UIs only over VPN
 ```
@@ -145,6 +153,7 @@ This creates:
 - `build/server/wg0.conf`
 - `build/client/iphone.conf`
 - `build/ssh/sshd_config.snippet`
+- `build/webterm/ttyd.service` (only when `WEBTERM_ENABLED=true`)
 
 ### 5. Install the server config
 
@@ -190,7 +199,28 @@ This adds a drop-in snippet to restrict SSH to key-based auth and disables root 
 
 This creates `dist/pit-box-client.zip` containing the client config and a QR-friendly text copy.
 
-### 10. Validate
+### 10. (Optional) Install the web terminal
+
+Enable in `settings.env` (`WEBTERM_ENABLED=true`, set `WEBTERM_PORT` and `WEBTERM_HOSTNAME`), then
+re-render and install:
+
+```bash
+./scripts/render_configs.sh
+sudo ./scripts/configure_ufw.sh        # or configure_firewalld.sh
+sudo ./scripts/install_webterm.sh
+./scripts/package_client.sh            # re-package — client DNS was updated
+```
+
+This installs **ttyd** (web terminal) and **dnsmasq** (VPN-scoped DNS resolver), both bound to the
+WireGuard tunnel IP only.  Re-import the client config on your iPhone — the `DNS` field is updated
+to point at the server so `WEBTERM_HOSTNAME` resolves over the tunnel. The install step also
+regenerates the helper-toolbar page from the locally installed ttyd assets so mobile browsers get
+buttons for tmux windows, arrows, `Tab`, `Esc`, and common control keys.
+
+Point a browser (over VPN) at `https://webterm.home/` — you will be prompted to log in with
+your local Unix credentials.
+
+### 11. Validate
 
 ```bash
 ./scripts/validate.sh
@@ -231,6 +261,26 @@ The expectation here is:
 - Password auth is disabled
 - Public key auth is enabled
 - Root login is disabled
+- Session keepalive is enabled (`ClientAliveInterval 30`, `ClientAliveCountMax 6`) — the server
+  polls idle clients every 30 seconds and drops the connection after 3 minutes of no response
+
+## Notes on the web terminal
+
+- **ttyd** serves an xterm.js terminal behind Caddy at `https://WEBTERM_HOSTNAME/`
+- The service binds exclusively to the WireGuard tunnel IP — never to the public interface
+- It invokes `/bin/login`, so you authenticate with your local Unix username and password
+- WebSocket keepalives (`--ping-interval 30`) prevent the browser session from going idle
+- Only accessible from devices connected to the WireGuard VPN
+- The generated page includes mobile helper keys for tmux window control, arrows, `Tab`, `Esc`,
+  `Ctrl+C`, `Ctrl+D`, and `Ctrl+L`
+- **dnsmasq** runs on the server's WireGuard tunnel IP, resolving `WEBTERM_HOSTNAME` locally and
+  forwarding all other queries to `LAN_DNS_SERVER` — it uses `bind-interfaces` so it does not
+  conflict with `systemd-resolved` or other host resolvers
+- When `WEBTERM_ENABLED=true`, the rendered client config sets `DNS = WG_SERVER_TUNNEL_IP` so the
+  hostname resolves over the tunnel; re-import the iPhone config after enabling
+- Opt-in: set `WEBTERM_ENABLED=true`, `WEBTERM_PORT`, and `WEBTERM_HOSTNAME` in `settings.env`
+- If the browser shows the plain ttyd page without helper keys, run
+  `sudo ./scripts/rebuild_webservices.sh ttyd` and then hard-refresh the browser
 
 ## Notes on SMB and web UIs
 

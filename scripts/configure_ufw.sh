@@ -16,6 +16,15 @@ source "$SETTINGS_FILE"
 ufw allow "${WG_LISTEN_PORT}/udp"
 ufw allow in on "$WG_INTERFACE" to any port 22 proto tcp
 
+if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
+  ufw allow in on "$WG_INTERFACE" to any port 443 proto tcp
+  ufw allow in on "$WG_INTERFACE" to any port 53 proto udp
+fi
+
+if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
+  ufw allow in on "$WG_INTERFACE" to any port 9090 proto tcp
+fi
+
 # Forwarding rules for LAN mode / full-tunnel use cases.
 grep -q "DEFAULT_FORWARD_POLICY" /etc/default/ufw && \
   sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw || true

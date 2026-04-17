@@ -1,0 +1,15 @@
+# dnsmasq drop-in for VPN-scoped DNS resolution.
+# Deployed to /etc/dnsmasq.d/pit-box-vpn.conf by scripts/install_webterm.sh.
+#
+# Binds only to the WireGuard tunnel interface so it does not conflict with
+# systemd-resolved or any other resolver on the host.  All queries that do not
+# match a local address/record are forwarded upstream to the LAN DNS server.
+
+interface=WG_INTERFACE
+bind-interfaces
+listen-address=WG_SERVER_TUNNEL_IP
+no-dhcp-interface=WG_INTERFACE
+server=LAN_DNS_SERVER
+
+# Resolve the web terminal hostname to the server's WireGuard tunnel IP.
+address=/WEBTERM_HOSTNAME/WG_SERVER_TUNNEL_IP
