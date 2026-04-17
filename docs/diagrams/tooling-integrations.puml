@@ -16,6 +16,7 @@ rectangle "scripts/install_fedora.sh\n2 detected tools" as source_scripts_instal
 rectangle "scripts/install_ubuntu.sh\n3 detected tools" as source_scripts_install_ubuntu_sh #E0F2FE
 rectangle "scripts/package_client.sh\n4 detected tools" as source_scripts_package_client_sh #E0F2FE
 rectangle "scripts/render_configs.sh\n2 detected tools" as source_scripts_render_configs_sh #E0F2FE
+rectangle "scripts/run_tachometer_profile.sh\n3 detected tools" as source_scripts_run_tachometer_profile_sh #E0F2FE
 rectangle "scripts/validate.sh\n0 detected tools" as source_scripts_validate_sh #E0F2FE
 cloud "actions/checkout" as tool_actions_checkout #FEF3C7
 cloud "actions/setup-python" as tool_actions_setup_python #FEF3C7
@@ -29,10 +30,13 @@ cloud "mkdir" as tool_mkdir #FEF3C7
 cloud "pip" as tool_pip #FEF3C7
 cloud "pre-commit" as tool_pre_commit #FEF3C7
 cloud "qrencode" as tool_qrencode #FEF3C7
+cloud "run" as tool_run #FEF3C7
 cloud "sed" as tool_sed #FEF3C7
 cloud "sshd" as tool_sshd #FEF3C7
+cloud "summarize" as tool_summarize #FEF3C7
 cloud "sysctl" as tool_sysctl #FEF3C7
 cloud "systemctl" as tool_systemctl #FEF3C7
+cloud "tachometer" as tool_tachometer #FEF3C7
 cloud "tee" as tool_tee #FEF3C7
 cloud "ufw" as tool_ufw #FEF3C7
 cloud "wg" as tool_wg #FEF3C7
@@ -68,8 +72,11 @@ source_scripts_package_client_sh --> tool_qrencode
 source_scripts_package_client_sh --> tool_zip
 source_scripts_render_configs_sh --> tool_cat
 source_scripts_render_configs_sh --> tool_mkdir
+source_scripts_run_tachometer_profile_sh --> tool_run
+source_scripts_run_tachometer_profile_sh --> tool_summarize
+source_scripts_run_tachometer_profile_sh --> tool_tachometer
 note as toolingGraphSummary
-Scanned 12 tooling entrypoints.
-Detected 20 third-party tools.
+Scanned 13 tooling entrypoints.
+Detected 23 third-party tools.
 end note
 @enduml
