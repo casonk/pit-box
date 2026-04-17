@@ -44,3 +44,11 @@ Check:
 2. endpoint hostname and port are correct
 3. the `AllowedIPs` line matches the desired routing mode
 4. line endings were not mangled during transfer
+
+## Web terminal loads but helper keys are missing
+
+Check:
+
+1. `systemctl cat ttyd` includes `--index /etc/pit-box/webterm/index.html`
+2. rerun `sudo ./scripts/rebuild_webservices.sh ttyd` to regenerate the helper-toolbar page
+3. hard-refresh the browser after the ttyd restart so the old page is not cached
