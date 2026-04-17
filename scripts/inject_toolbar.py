@@ -20,12 +20,14 @@ TOOLBAR_CSS = """\
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: 52px;
+  height: calc(52px + env(safe-area-inset-bottom, 0px));
   background: #161b22ee;
   border-top: 1px solid #30363d;
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -145,7 +147,14 @@ def inject(html: str) -> str:
     if MARKER not in html:
         raise RuntimeError(f"Expected marker not found: {MARKER!r}")
     inject_block = TOOLBAR_CSS + TOOLBAR_HTML + WS_INTERCEPTOR
-    return html.replace(MARKER, inject_block + MARKER, 1)
+    html = html.replace(MARKER, inject_block + MARKER, 1)
+    # Ensure iOS respects safe-area-inset so the toolbar clears the home bar.
+    html = html.replace(
+        'name="viewport" content="',
+        'name="viewport" content="viewport-fit=cover, ',
+        1,
+    )
+    return html
 
 
 def main() -> None:
