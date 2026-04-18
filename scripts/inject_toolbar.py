@@ -60,7 +60,6 @@ WS_INTERCEPTOR = """\
   var _p      = new URLSearchParams(window.location.search);
   var _window = _p.get('window');
   var _action = _p.get('action');
-  var _kill   = _p.get('kill');
 
   function send(data) {
     if (!sock) { return; }
@@ -78,22 +77,6 @@ WS_INTERCEPTOR = """\
     } else if (_action === 'new') {
       send('\x02');
       setTimeout(function () { send('c'); }, 80);
-    } else if (_kill !== null) {
-      // Switch to the target window, then kill it with ctrl+b & y
-      send('\x02');
-      setTimeout(function () {
-        send(_kill);
-        setTimeout(function () {
-          send('\x02');
-          setTimeout(function () {
-            send('&');
-            setTimeout(function () {
-              send('y');
-              setTimeout(function () { window.location.href = '/'; }, 600);
-            }, 250);
-          }, 120);
-        }, 350);
-      }, 80);
     }
   }
 

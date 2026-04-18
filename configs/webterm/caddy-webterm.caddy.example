@@ -2,9 +2,10 @@
 # Follows the same mTLS pattern as all other wiring-harness services.
 #
 # Routing:
-#   /       — home page (home.html) served from /etc/pit-box/webterm
-#   /term   — terminal page (index.html) served from /etc/pit-box/webterm
-#   *       — reverse-proxied to ttyd (WebSocket /ws, assets, auth token)
+#   /        — home page (home.html) served from /etc/pit-box/webterm
+#   /term    — terminal page (index.html) served from /etc/pit-box/webterm
+#   /api/*   — window management API (pit-box-api service)
+#   *        — reverse-proxied to ttyd (WebSocket /ws, assets, auth token)
 
 https://WEBTERM_HOSTNAME {
 	tls CADDY_CERTS_DIR/server.crt CADDY_CERTS_DIR/server.key {
@@ -28,6 +29,11 @@ https://WEBTERM_HOSTNAME {
 		root * /etc/pit-box/webterm
 		rewrite * /index.html
 		file_server
+	}
+
+	@api path_regexp ^/api/
+	handle @api {
+		reverse_proxy 127.0.0.1:WEBTERM_API_PORT
 	}
 
 	handle {
