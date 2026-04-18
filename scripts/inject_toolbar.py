@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Fetches ttyd's default HTML from a temporary instance and injects the
-pit-box tmux window-switcher toolbar, then saves the result to TARGET.
+Fetches ttyd's default HTML from a temporary instance, injects the pit-box
+WebSocket interceptor and a floating home link, then saves the result to TARGET.
+
+The terminal page is intentionally chrome-free; navigation happens via the
+home page at /.  URL params drive automatic tmux actions on connect:
+  ?window=N    — switch to tmux window N (ctrl+b N)
+  ?action=new  — open a new tmux window (ctrl+b c)
+  ?kill=N      — kill tmux window N (ctrl+b &, confirm, then redirect home)
 
 Usage: inject_toolbar.py [--port PORT] [--target PATH]
 Called by rebuild_webservices.sh during ttyd rebuild.
@@ -12,77 +18,38 @@ DEFAULT_PORT   = 7699
 DEFAULT_TARGET = "/etc/pit-box/webterm/index.html"
 
 # ---------------------------------------------------------------------------
-# Toolbar CSS — fixed at top; terminal container is pushed down to match
+# Minimal chrome — just a floating home link; terminal fills the full screen
 # ---------------------------------------------------------------------------
-TOOLBAR_CSS = """\
+HOME_BUTTON_CSS = """\
 <style>
-#pb-toolbar {
+#pb-home {
   position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 44px;
-  background: #161b22ee;
-  border-bottom: 1px solid #30363d;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  padding-top: env(safe-area-inset-top, 0px);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  top: max(8px, env(safe-area-inset-top));
+  right: 10px;
   z-index: 9999;
-}
-#pb-toolbar::-webkit-scrollbar { display: none; }
-/* Push ttyd's terminal container below the toolbar */
-#terminal-container {
-  top: 44px !important;
-}
-.pb-btn {
-  flex-shrink: 0;
-  min-width: 36px;
-  padding: 5px 9px;
-  background: #21262d;
-  color: #c9d1d9;
+  padding: 4px 11px;
+  background: rgba(22, 27, 34, 0.75);
+  color: #8b949e;
   border: 1px solid #30363d;
   border-radius: 6px;
-  font-size: 13px;
-  font-family: ui-monospace, monospace;
-  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  text-align: center;
-  touch-action: manipulation;
 }
-.pb-btn:active { background: #1f6feb; border-color: #388bfd; color: #fff; }
-.pb-btn-new { font-weight: bold; color: #3fb950; }
-.pb-sep {
-  width: 1px; min-width: 1px; height: 26px;
-  background: #30363d; flex-shrink: 0; margin: 0 2px;
-}
+#pb-home:active { color: #c9d1d9; border-color: #8b949e; }
 </style>
 """
 
-# ---------------------------------------------------------------------------
-# Toolbar HTML — tmux window switcher; no keyboard-shortcut keys
-# ---------------------------------------------------------------------------
-TOOLBAR_HTML = """\
-<div id="pb-toolbar">
-  <button class="pb-btn pb-btn-new" data-tmux="c" title="new window">+</button>
-  <div class="pb-sep"></div>
-  <button class="pb-btn" data-tmux="1" title="window 1">1</button>
-  <button class="pb-btn" data-tmux="2" title="window 2">2</button>
-  <button class="pb-btn" data-tmux="3" title="window 3">3</button>
-  <button class="pb-btn" data-tmux="4" title="window 4">4</button>
-  <button class="pb-btn" data-tmux="5" title="window 5">5</button>
-  <div class="pb-sep"></div>
-  <button class="pb-btn" data-tmux="p" title="previous window">&#x25c0;</button>
-  <button class="pb-btn" data-tmux="n" title="next window">&#x25b6;</button>
-</div>
+HOME_BUTTON_HTML = """\
+<a id="pb-home" href="/">&#x2302;</a>
 """
 
 # ---------------------------------------------------------------------------
-# WebSocket interceptor — must execute BEFORE ttyd's inline script so that
-# the constructor is already patched when ttyd opens its connection
+# WebSocket interceptor — patches window.WebSocket before ttyd's inline script
+# so toolbar buttons can reuse the socket without a second tmux attachment.
+# Also reads URL params to auto-execute tmux actions on connect.
 # ---------------------------------------------------------------------------
 WS_INTERCEPTOR = """\
 <script>
@@ -90,17 +57,10 @@ WS_INTERCEPTOR = """\
   var _WS  = window.WebSocket;
   var sock = null;
 
-  function PatchedWS(url, proto) {
-    var ws = proto !== undefined ? new _WS(url, proto) : new _WS(url);
-    if (url.indexOf('/ws') !== -1) { sock = ws; }
-    return ws;
-  }
-  PatchedWS.prototype  = _WS.prototype;
-  PatchedWS.CONNECTING = _WS.CONNECTING;
-  PatchedWS.OPEN       = _WS.OPEN;
-  PatchedWS.CLOSING    = _WS.CLOSING;
-  PatchedWS.CLOSED     = _WS.CLOSED;
-  window.WebSocket     = PatchedWS;
+  var _p      = new URLSearchParams(window.location.search);
+  var _window = _p.get('window');
+  var _action = _p.get('action');
+  var _kill   = _p.get('kill');
 
   function send(data) {
     if (!sock) { return; }
@@ -111,17 +71,48 @@ WS_INTERCEPTOR = """\
     }
   }
 
-  document.getElementById('pb-toolbar').addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-send],[data-tmux]');
-    if (!btn) { return; }
-    var raw = btn.getAttribute('data-send');
-    if (raw !== null) { send(raw); return; }
-    var chr = btn.getAttribute('data-tmux');
-    if (chr !== null) {
+  function execAction() {
+    if (_window !== null) {
       send('\x02');
-      setTimeout(function () { send(chr); }, 60);
+      setTimeout(function () { send(_window); }, 80);
+    } else if (_action === 'new') {
+      send('\x02');
+      setTimeout(function () { send('c'); }, 80);
+    } else if (_kill !== null) {
+      // Switch to the target window, then kill it with ctrl+b & y
+      send('\x02');
+      setTimeout(function () {
+        send(_kill);
+        setTimeout(function () {
+          send('\x02');
+          setTimeout(function () {
+            send('&');
+            setTimeout(function () {
+              send('y');
+              setTimeout(function () { window.location.href = '/'; }, 600);
+            }, 250);
+          }, 120);
+        }, 350);
+      }, 80);
     }
-  });
+  }
+
+  function PatchedWS(url, proto) {
+    var ws = proto !== undefined ? new _WS(url, proto) : new _WS(url);
+    if (url.indexOf('/ws') !== -1) {
+      sock = ws;
+      ws.addEventListener('open', function () {
+        setTimeout(execAction, 900);
+      }, { once: true });
+    }
+    return ws;
+  }
+  PatchedWS.prototype  = _WS.prototype;
+  PatchedWS.CONNECTING = _WS.CONNECTING;
+  PatchedWS.OPEN       = _WS.OPEN;
+  PatchedWS.CLOSING    = _WS.CLOSING;
+  PatchedWS.CLOSED     = _WS.CLOSED;
+  window.WebSocket     = PatchedWS;
 }());
 </script>
 """
@@ -142,9 +133,9 @@ def fetch_html(url: str, retries: int = 20) -> str:
 def inject(html: str) -> str:
     if MARKER not in html:
         raise RuntimeError(f"Expected marker not found: {MARKER!r}")
-    inject_block = TOOLBAR_CSS + TOOLBAR_HTML + WS_INTERCEPTOR
+    inject_block = HOME_BUTTON_CSS + HOME_BUTTON_HTML + WS_INTERCEPTOR
     html = html.replace(MARKER, inject_block + MARKER, 1)
-    # viewport-fit=cover lets env(safe-area-inset-*) work on iOS notched devices.
+    # viewport-fit=cover enables env(safe-area-inset-*) on iOS notched devices.
     html = html.replace(
         'name="viewport" content="',
         'name="viewport" content="viewport-fit=cover, ',
@@ -162,7 +153,7 @@ def main() -> None:
     url = f"http://127.0.0.1:{args.port}/"
     print(f"Fetching ttyd HTML from {url} …")
     html = fetch_html(url)
-    print(f"Fetched {len(html):,} bytes — injecting toolbar …")
+    print(f"Fetched {len(html):,} bytes — injecting …")
     html = inject(html)
 
     with open(args.target, "w", encoding="utf-8") as f:
