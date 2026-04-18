@@ -126,6 +126,23 @@ WS_INTERCEPTOR = """\
       setTimeout(function () { send(chr); }, 60);
     }
   });
+
+  // iOS Safari anchors position:fixed to the layout viewport, so the toolbar
+  // disappears under the on-screen keyboard.  The visualViewport API lets us
+  // reposition it to the top of the visible area instead.
+  var tb = document.getElementById('pb-toolbar');
+  function reposTb() {
+    var vv = window.visualViewport;
+    if (!vv) { return; }
+    tb.style.position = 'fixed';
+    tb.style.top = Math.round(vv.offsetTop + vv.height - tb.offsetHeight) + 'px';
+    tb.style.bottom = 'auto';
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', reposTb);
+    window.visualViewport.addEventListener('scroll', reposTb);
+    reposTb();
+  }
 }());
 </script>
 """
