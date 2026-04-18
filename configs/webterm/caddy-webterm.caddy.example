@@ -31,7 +31,7 @@ https://WEBTERM_HOSTNAME {
 		file_server
 	}
 
-	@api path_regexp ^/api/
+	@api path /api/*
 	handle @api {
 		reverse_proxy 127.0.0.1:WEBTERM_API_PORT
 	}
