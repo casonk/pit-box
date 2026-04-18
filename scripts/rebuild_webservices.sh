@@ -45,6 +45,8 @@ rebuild_ttyd() {
   [[ -f "$svc" ]] || { echo "Missing $svc — run render_configs.sh first" >&2; return 1; }
   ensure_package ttyd
   ensure_package tmux
+  mkdir -p /etc/pit-box/webterm
+  cp "$ROOT_DIR/configs/webterm/home.html" /etc/pit-box/webterm/home.html
   "$ROOT_DIR/scripts/render_webterm_index.sh" /etc/pit-box/webterm/index.html
 
   cp "$svc" /etc/systemd/system/ttyd.service

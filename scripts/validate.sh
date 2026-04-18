@@ -37,6 +37,7 @@ check_file "$ROOT_DIR/scripts/render_webterm_index.sh"
 check_file "$ROOT_DIR/configs/webterm/ttyd.service.example"
 check_file "$ROOT_DIR/configs/webterm/dnsmasq-vpn.conf.example"
 check_file "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"
+check_file "$ROOT_DIR/configs/webterm/home.html"
 check_file "$ROOT_DIR/configs/webterm/index.html"
 
 if [[ -f "$ROOT_DIR/build/server/wg0.conf" ]]; then
