@@ -2,40 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <title>pit-box terminal</title>
   <link rel="stylesheet" href="/css/fontawesome.min.css">
   <style>
-    /* No custom layout for #terminal-container — ttyd.js owns that element fully.
-       The toolbar is a fixed overlay; the last line of the terminal may sit under
-       it during long output, but the prompt scrolls into view on any keypress. */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; background: #0d1117; }
     #pb-toolbar {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 52px;
+      top: 0; left: 0; right: 0;
+      height: 44px;
       background: #161b22ee;
-      border-top: 1px solid #30363d;
+      border-bottom: 1px solid #30363d;
       display: flex;
       align-items: center;
       gap: 4px;
       padding: 0 8px;
+      padding-top: env(safe-area-inset-top, 0px);
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       z-index: 9999;
     }
     #pb-toolbar::-webkit-scrollbar { display: none; }
+    /* Push ttyd's terminal container below the toolbar */
+    #terminal-container {
+      top: 44px !important;
+    }
     .pb-btn {
       flex-shrink: 0;
-      min-width: 40px;
-      padding: 6px 10px;
+      min-width: 36px;
+      padding: 5px 9px;
       background: #21262d;
       color: #c9d1d9;
       border: 1px solid #30363d;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 13px;
       font-family: ui-monospace, monospace;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
@@ -44,8 +46,9 @@
       touch-action: manipulation;
     }
     .pb-btn:active { background: #1f6feb; border-color: #388bfd; color: #fff; }
+    .pb-btn-new { font-weight: bold; color: #3fb950; }
     .pb-sep {
-      width: 1px; min-width: 1px; height: 30px;
+      width: 1px; min-width: 1px; height: 26px;
       background: #30363d; flex-shrink: 0; margin: 0 2px;
     }
   </style>
@@ -54,23 +57,16 @@
   <div id="terminal-container"></div>
 
   <div id="pb-toolbar">
-    <button class="pb-btn" data-send="&#x02;" title="tmux prefix">⌃B</button>
-    <button class="pb-btn" data-tmux="c"      title="new window">+win</button>
-    <button class="pb-btn" data-tmux="n"      title="next window">next</button>
-    <button class="pb-btn" data-tmux="p"      title="prev window">prev</button>
-    <button class="pb-btn" data-tmux="w"      title="window list">list</button>
-    <button class="pb-btn" data-tmux="&amp;"  title="kill window">kill</button>
+    <button class="pb-btn pb-btn-new" data-tmux="c" title="new window">+</button>
     <div class="pb-sep"></div>
-    <button class="pb-btn" data-send="&#x1b;[A">↑</button>
-    <button class="pb-btn" data-send="&#x1b;[B">↓</button>
-    <button class="pb-btn" data-send="&#x1b;[D">←</button>
-    <button class="pb-btn" data-send="&#x1b;[C">→</button>
+    <button class="pb-btn" data-tmux="1" title="window 1">1</button>
+    <button class="pb-btn" data-tmux="2" title="window 2">2</button>
+    <button class="pb-btn" data-tmux="3" title="window 3">3</button>
+    <button class="pb-btn" data-tmux="4" title="window 4">4</button>
+    <button class="pb-btn" data-tmux="5" title="window 5">5</button>
     <div class="pb-sep"></div>
-    <button class="pb-btn" data-send="&#x09;"  title="tab completion">Tab</button>
-    <button class="pb-btn" data-send="&#x1b;"  title="escape">Esc</button>
-    <button class="pb-btn" data-send="&#x03;"  title="interrupt">⌃C</button>
-    <button class="pb-btn" data-send="&#x04;"  title="EOF / logout">⌃D</button>
-    <button class="pb-btn" data-send="&#x0c;"  title="clear screen">⌃L</button>
+    <button class="pb-btn" data-tmux="p" title="previous window">&#x25c0;</button>
+    <button class="pb-btn" data-tmux="n" title="next window">&#x25b6;</button>
   </div>
 
   <!--
