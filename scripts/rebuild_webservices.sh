@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Redeploy rendered web-service configs and restart the affected systemd units.
-# Usage: rebuild_webservices.sh [ttyd] [dns] [caddy] [cockpit]
+# Usage: rebuild_webservices.sh [ttyd] [api] [dns] [caddy] [cockpit]
 # With no arguments all enabled services are rebuilt.
 set -euo pipefail
 
@@ -12,7 +12,7 @@ SETTINGS_FILE="$ROOT_DIR/settings.env"
 source "$SETTINGS_FILE"
 
 ALL_SERVICES=()
-[[ "${WEBTERM_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(ttyd dns caddy)
+[[ "${WEBTERM_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(ttyd api dns caddy)
 [[ "${COCKPIT_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(cockpit)
 
 if [[ ${#ALL_SERVICES[@]} -eq 0 ]]; then
@@ -56,6 +56,17 @@ rebuild_ttyd() {
   echo "[ok] ttyd rebuilt"
 }
 
+rebuild_api() {
+  local svc="$ROOT_DIR/build/webterm/pit-box-api.service"
+  [[ -f "$svc" ]] || { echo "Missing $svc — run render_configs.sh first" >&2; return 1; }
+  cp "$ROOT_DIR/scripts/pit_box_api.py" /etc/pit-box/pit_box_api.py
+  cp "$svc" /etc/systemd/system/pit-box-api.service
+  systemctl daemon-reload
+  systemctl enable --now pit-box-api
+  systemctl restart pit-box-api
+  echo "[ok] pit-box-api rebuilt"
+}
+
 rebuild_caddy() {
   local src="$ROOT_DIR/build/webterm/caddy-webterm.caddy"
   local caddyfile="/etc/caddy/Caddyfile"
@@ -89,6 +100,7 @@ errors=0
 for svc in "${SERVICES[@]}"; do
   case "$svc" in
     ttyd)    rebuild_ttyd    || { echo "[fail] ttyd";    errors=$((errors + 1)); } ;;
+    api)     rebuild_api     || { echo "[fail] api";     errors=$((errors + 1)); } ;;
     dns)     rebuild_dns     || { echo "[fail] dns";     errors=$((errors + 1)); } ;;
     caddy)   rebuild_caddy   || { echo "[fail] caddy";   errors=$((errors + 1)); } ;;
     cockpit) rebuild_cockpit || { echo "[fail] cockpit"; errors=$((errors + 1)); } ;;

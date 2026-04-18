@@ -35,10 +35,12 @@ check_file "$ROOT_DIR/scripts/package_client.sh"
 check_file "$ROOT_DIR/scripts/inject_toolbar.py"
 check_file "$ROOT_DIR/scripts/render_webterm_index.sh"
 check_file "$ROOT_DIR/configs/webterm/ttyd.service.example"
+check_file "$ROOT_DIR/configs/webterm/pit-box-api.service.example"
 check_file "$ROOT_DIR/configs/webterm/dnsmasq-vpn.conf.example"
 check_file "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"
 check_file "$ROOT_DIR/configs/webterm/home.html"
 check_file "$ROOT_DIR/configs/webterm/index.html"
+check_file "$ROOT_DIR/scripts/pit_box_api.py"
 
 if [[ -f "$ROOT_DIR/build/server/wg0.conf" ]]; then
   if ! grep -q '^\[Interface\]' "$ROOT_DIR/build/server/wg0.conf"; then

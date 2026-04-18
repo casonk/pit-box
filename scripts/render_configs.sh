@@ -102,6 +102,7 @@ if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
   : "${WEBTERM_HOSTNAME:?WEBTERM_ENABLED=true but WEBTERM_HOSTNAME is not set}"
   : "${WEBTERM_USER:?WEBTERM_ENABLED=true but WEBTERM_USER is not set}"
   : "${CADDY_CERTS_DIR:?WEBTERM_ENABLED=true but CADDY_CERTS_DIR is not set}"
+  WEBTERM_API_PORT=$((WEBTERM_PORT + 1))
   mkdir -p "$BUILD_DIR/webterm"
   cat > "$BUILD_DIR/webterm/ttyd.service" <<EOF
 [Unit]
@@ -124,6 +125,24 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
   echo "Rendered build/webterm/ttyd.service"
+
+  cat > "$BUILD_DIR/webterm/pit-box-api.service" <<EOF
+[Unit]
+Description=pit-box web terminal window API
+After=network-online.target ttyd.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${WEBTERM_USER}
+ExecStart=/usr/bin/python3 /etc/pit-box/pit_box_api.py --port ${WEBTERM_API_PORT} --session pit-box
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  echo "Rendered build/webterm/pit-box-api.service"
 
   cat > "$BUILD_DIR/webterm/caddy-webterm.caddy" <<EOF
 https://${WEBTERM_HOSTNAME} {
@@ -148,6 +167,11 @@ https://${WEBTERM_HOSTNAME} {
 		root * /etc/pit-box/webterm
 		rewrite * /index.html
 		file_server
+	}
+
+	@api path_regexp ^/api/
+	handle @api {
+		reverse_proxy 127.0.0.1:${WEBTERM_API_PORT}
 	}
 
 	handle {

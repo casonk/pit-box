@@ -15,82 +15,62 @@
       padding-top: max(20px, calc(env(safe-area-inset-top) + 8px));
       padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
     }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 28px;
-    }
+    header { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; }
     header h1 {
-      font-size: 20px;
-      font-weight: 600;
-      color: #e6edf3;
+      font-size: 20px; font-weight: 600; color: #e6edf3;
       font-family: ui-monospace, monospace;
     }
     .dot { width: 8px; height: 8px; background: #3fb950; border-radius: 50%; }
     .btn {
-      display: block;
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      text-align: center;
-      margin-bottom: 10px;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
+      display: block; width: 100%;
+      padding: 14px 16px; border-radius: 10px;
+      font-size: 15px; font-weight: 600;
+      text-decoration: none; text-align: center;
+      margin-bottom: 10px; border: none; cursor: pointer;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
-    .btn-green  { background: #238636; border: 1px solid #2ea043; color: #fff; }
-    .btn-green:active  { background: #2ea043; }
-    .btn-gray   { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; }
-    .btn-gray:active   { background: #2d333b; }
+    .btn-green { background: #238636; border: 1px solid #2ea043; color: #fff; }
+    .btn-green:active { background: #2ea043; }
+    .btn-gray  { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; }
+    .btn-gray:active  { background: #2d333b; }
     .section { margin-top: 28px; }
     .section-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #8b949e;
-      margin-bottom: 12px;
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #8b949e; margin-bottom: 12px;
     }
-    .win-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
+    .win-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .win-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 10px; overflow: hidden;
+      display: flex; flex-direction: column;
     }
+    .win-card.active { border-color: #388bfd; }
     .win-open {
-      display: block;
-      padding: 18px 8px 12px;
-      text-align: center;
-      text-decoration: none;
+      display: block; padding: 14px 8px 6px;
+      text-align: center; text-decoration: none;
       color: #58a6ff;
-      font-family: ui-monospace, monospace;
-      font-size: 24px;
-      font-weight: 700;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
+      font-family: ui-monospace, monospace; font-size: 22px; font-weight: 700;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
+    .win-card.active .win-open { color: #79c0ff; }
     .win-open:active { background: #1c2128; }
+    .win-name {
+      text-align: center; font-size: 10px; color: #484f58;
+      font-family: ui-monospace, monospace;
+      padding: 0 4px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .win-card.active .win-name { color: #8b949e; }
     .win-kill {
-      display: block;
-      padding: 7px;
-      text-align: center;
-      text-decoration: none;
-      color: #484f58;
-      font-size: 11px;
-      border-top: 1px solid #21262d;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
+      display: block; padding: 7px; text-align: center;
+      background: transparent; border: none; border-top: 1px solid #21262d;
+      color: #484f58; font-size: 11px; cursor: pointer; width: 100%;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
     .win-kill:active { color: #f85149; background: #200a0a; }
+    .empty {
+      color: #484f58; font-size: 14px;
+      text-align: center; padding: 20px 0;
+    }
   </style>
 </head>
 <body>
@@ -99,22 +79,68 @@
     <h1>pit-box</h1>
   </header>
 
-  <a class="btn btn-green" href="/term">Open Terminal</a>
-  <a class="btn btn-gray"  href="/term?action=new">+ New Window</a>
+  <a class="btn btn-green" href="/term" id="btn-open">Open Terminal</a>
+  <button class="btn btn-gray" id="btn-new">+ New Window</button>
 
   <div class="section">
     <div class="section-label">Windows</div>
-    <div class="win-grid">
-      <div class="win-card"><a class="win-open" href="/term?window=1">1</a><a class="win-kill" href="/term?kill=1">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=2">2</a><a class="win-kill" href="/term?kill=2">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=3">3</a><a class="win-kill" href="/term?kill=3">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=4">4</a><a class="win-kill" href="/term?kill=4">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=5">5</a><a class="win-kill" href="/term?kill=5">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=6">6</a><a class="win-kill" href="/term?kill=6">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=7">7</a><a class="win-kill" href="/term?kill=7">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=8">8</a><a class="win-kill" href="/term?kill=8">kill</a></div>
-      <div class="win-card"><a class="win-open" href="/term?window=9">9</a><a class="win-kill" href="/term?kill=9">kill</a></div>
+    <div class="win-grid" id="win-grid">
+      <div class="empty" style="grid-column:1/-1">Loading…</div>
     </div>
   </div>
+
+  <script>
+  (function () {
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderWindows(windows) {
+      var grid = document.getElementById('win-grid');
+      if (!windows.length) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No active windows</div>';
+        return;
+      }
+      grid.innerHTML = windows.map(function (w) {
+        return '<div class="win-card' + (w.active ? ' active' : '') + '">' +
+          '<a class="win-open" href="/term?window=' + w.index + '">' + esc(w.index) + '</a>' +
+          '<div class="win-name">' + esc(w.name) + '</div>' +
+          '<button class="win-kill" data-index="' + w.index + '">kill</button>' +
+        '</div>';
+      }).join('');
+    }
+
+    function loadWindows() {
+      fetch('/api/windows')
+        .then(function (r) { return r.json(); })
+        .then(renderWindows)
+        .catch(function () { renderWindows([]); });
+    }
+
+    document.getElementById('win-grid').addEventListener('click', function (e) {
+      var btn = e.target.closest('.win-kill');
+      if (!btn) { return; }
+      var idx = btn.getAttribute('data-index');
+      btn.textContent = '…';
+      fetch('/api/windows/' + idx, { method: 'DELETE' })
+        .then(loadWindows)
+        .catch(loadWindows);
+    });
+
+    document.getElementById('btn-new').addEventListener('click', function () {
+      // Navigate to terminal with ?action=new — ttyd+tmux creates the window.
+      window.location.href = '/term?action=new';
+    });
+
+    // Refresh when user returns to this tab (e.g. after closing a terminal).
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) { loadWindows(); }
+    });
+
+    loadWindows();
+  }());
+  </script>
 </body>
 </html>
