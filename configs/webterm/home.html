@@ -44,9 +44,14 @@
       border-radius: 10px; overflow: hidden;
       display: flex; flex-direction: column;
     }
-    .win-card.active { border-color: #388bfd; }
+    .win-card.active { background: #0d1f0e; border-color: #3fb950; }
+    .win-live {
+      text-align: center; padding: 6px 4px 0;
+      font-size: 10px; color: #3fb950;
+      font-family: ui-monospace, monospace; letter-spacing: 0.04em;
+    }
     .win-open {
-      display: block; padding: 14px 8px 6px;
+      display: block; padding: 8px 8px 6px;
       text-align: center; text-decoration: none;
       color: #58a6ff;
       font-family: ui-monospace, monospace; font-size: 22px; font-weight: 700;
@@ -105,6 +110,7 @@
       }
       grid.innerHTML = windows.map(function (w) {
         return '<div class="win-card' + (w.active ? ' active' : '') + '">' +
+          (w.active ? '<div class="win-live">● live</div>' : '') +
           '<a class="win-open" href="/term?window=' + w.index + '">' + esc(w.index) + '</a>' +
           '<div class="win-name">' + esc(w.name) + '</div>' +
           '<button class="win-kill" data-index="' + w.index + '">kill</button>' +
