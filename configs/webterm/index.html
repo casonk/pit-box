@@ -76,6 +76,8 @@
       }
 
       function PatchedWS(url, proto) {
+        // Normalize WS URL: strip any path prefix so it always hits /ws.
+        url = url.replace(/(wss?:\/\/[^/]+)(?:\/[^?#]*)?\/ws(\?[^#]*)?$/, '$1/ws$2');
         var ws = proto !== undefined ? new _WS(url, proto) : new _WS(url);
         if (url.indexOf('/ws') !== -1) {
           sock = ws;
