@@ -1,0 +1,14 @@
+[Unit]
+Description=pit-box web terminal window API
+After=network-online.target ttyd.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=WEBTERM_USER
+ExecStart=/usr/bin/python3 /etc/pit-box/pit_box_api.py --port WEBTERM_API_PORT --session pit-box
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
