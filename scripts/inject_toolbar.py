@@ -98,6 +98,10 @@ WS_INTERCEPTOR = """\
   }
 
   function PatchedWS(url, proto) {
+    // ttyd builds the WS URL relative to the serving path (e.g. /term/ws when
+    // the page is at /term), but ttyd's WS handler only listens at /ws.
+    // Normalize: strip any path prefix so the URL always ends at /ws.
+    url = url.replace(/(wss?:\/\/[^/]+)(?:\/[^?#]*)?\/ws(\?[^#]*)?$/, '$1/ws$2');
     var ws = proto !== undefined ? new _WS(url, proto) : new _WS(url);
     if (url.indexOf('/ws') !== -1) {
       sock = ws;
