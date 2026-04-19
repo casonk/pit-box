@@ -42,24 +42,31 @@ ensure_package() {
 
 rebuild_ttyd() {
   local svc="$ROOT_DIR/build/webterm/ttyd.service"
+  local api_svc="$ROOT_DIR/build/webterm/pit-box-api.service"
   [[ -f "$svc" ]] || { echo "Missing $svc — run render_configs.sh first" >&2; return 1; }
+  [[ -f "$api_svc" ]] || { echo "Missing $api_svc — run render_configs.sh first" >&2; return 1; }
   ensure_package ttyd
   ensure_package tmux
   mkdir -p /etc/pit-box/webterm
   cp "$ROOT_DIR/configs/webterm/home.html" /etc/pit-box/webterm/home.html
+  install -m 0755 "$ROOT_DIR/scripts/ttyd_session.sh" /etc/pit-box/ttyd_session.sh
+  install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" /etc/pit-box/pit_box_api.py
   "$ROOT_DIR/scripts/render_webterm_index.sh" /etc/pit-box/webterm/index.html
 
   cp "$svc" /etc/systemd/system/ttyd.service
+  cp "$api_svc" /etc/systemd/system/pit-box-api.service
   systemctl daemon-reload
   systemctl enable --now ttyd
+  systemctl enable --now pit-box-api
   systemctl restart ttyd
-  echo "[ok] ttyd rebuilt"
+  systemctl restart pit-box-api
+  echo "[ok] ttyd rebuilt (home/API refreshed too)"
 }
 
 rebuild_api() {
   local svc="$ROOT_DIR/build/webterm/pit-box-api.service"
   [[ -f "$svc" ]] || { echo "Missing $svc — run render_configs.sh first" >&2; return 1; }
-  cp "$ROOT_DIR/scripts/pit_box_api.py" /etc/pit-box/pit_box_api.py
+  install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" /etc/pit-box/pit_box_api.py
   cp "$svc" /etc/systemd/system/pit-box-api.service
   systemctl daemon-reload
   systemctl enable --now pit-box-api
@@ -105,7 +112,7 @@ for svc in "${SERVICES[@]}"; do
     caddy)   rebuild_caddy   || { echo "[fail] caddy";   errors=$((errors + 1)); } ;;
     cockpit) rebuild_cockpit || { echo "[fail] cockpit"; errors=$((errors + 1)); } ;;
     *)
-      echo "Unknown service: '$svc'  (valid: ttyd dns caddy cockpit)" >&2
+      echo "Unknown service: '$svc'  (valid: ttyd api dns caddy cockpit)" >&2
       exit 1
       ;;
   esac

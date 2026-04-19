@@ -50,5 +50,21 @@ Check:
 Check:
 
 1. `systemctl cat ttyd` includes `--index /etc/pit-box/webterm/index.html`
-2. rerun `sudo ./scripts/rebuild_webservices.sh ttyd` to regenerate the helper-toolbar page
+2. rerun `sudo ./scripts/rebuild_webservices.sh ttyd` to redeploy the terminal page and refresh the coupled home-page API
 3. hard-refresh the browser after the ttyd restart so the old page is not cached
+
+## Home page does not show live terminals
+
+Check:
+
+1. `systemctl status pit-box-api` is healthy
+2. `sudo ./scripts/rebuild_webservices.sh ttyd` redeploys the home page, terminal page, and API together
+3. opening a second browser tab should increase the Live terminals count within a few seconds
+
+## Reconnect jumps back to window 0
+
+Check:
+
+1. `/etc/pit-box/ttyd_session.sh` includes both `display-message` and `select-window`
+2. `sudo ./scripts/rebuild_webservices.sh ttyd` redeploys the updated ttyd session wrapper
+3. disconnect and reconnect after the ttyd restart so the next browser session inherits the last tmux window
