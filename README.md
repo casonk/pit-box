@@ -211,11 +211,12 @@ sudo ./scripts/install_webterm.sh
 ./scripts/package_client.sh            # re-package — client DNS was updated
 ```
 
-This installs **ttyd** (web terminal) and **dnsmasq** (VPN-scoped DNS resolver), both bound to the
-WireGuard tunnel IP only.  Re-import the client config on your iPhone — the `DNS` field is updated
-to point at the server so `WEBTERM_HOSTNAME` resolves over the tunnel. The install step also
-regenerates the helper-toolbar page from the locally installed ttyd assets so mobile browsers get
-buttons for tmux windows, arrows, `Tab`, `Esc`, and common control keys.
+This installs **ttyd** (web terminal), the loopback-only **pit-box API** used by the home page,
+and **dnsmasq** (VPN-scoped DNS resolver), all bound to the WireGuard path only. Re-import the
+client config on your iPhone — the `DNS` field is updated to point at the server so
+`WEBTERM_HOSTNAME` resolves over the tunnel. The install step also deploys the home page and
+regenerates the terminal page so mobile browsers get tmux controls, arrows, `Tab`, `Esc`,
+`Ctrl+C`, font scaling, and buffer scroll helpers.
 
 Point a browser (over VPN) at `https://webterm.home/` — you will be prompted to log in with
 your local Unix credentials.
@@ -267,20 +268,28 @@ The expectation here is:
 ## Notes on the web terminal
 
 - **ttyd** serves an xterm.js terminal behind Caddy at `https://WEBTERM_HOSTNAME/`
+- `/` shows the home page with tmux windows and currently connected browser terminals
+- `/term` opens the terminal page with mobile helper buttons, font scaling, and buffer scroll
+  controls
 - The service binds exclusively to the WireGuard tunnel IP — never to the public interface
 - It invokes `/bin/login`, so you authenticate with your local Unix username and password
 - WebSocket keepalives (`--ping-interval 30`) prevent the browser session from going idle
 - Only accessible from devices connected to the WireGuard VPN
-- The generated page includes mobile helper keys for tmux window control, arrows, `Tab`, `Esc`,
-  `Ctrl+C`, `Ctrl+D`, and `Ctrl+L`
+- The generated terminal page includes mobile helper keys for tmux window control, arrows, `Tab`,
+  `Esc`, `Ctrl+C`, `Ctrl+D`, `Ctrl+L`, plus direct buffer scroll buttons and persistent font scaling
+- A reconnect inherits the last tmux window selected by the disconnected browser terminal instead of
+  always falling back to window `0`
+- The home page polls the loopback pit-box API so it can show both tmux windows and live browser
+  terminals, not just the shared tmux session state
 - **dnsmasq** runs on the server's WireGuard tunnel IP, resolving `WEBTERM_HOSTNAME` locally and
   forwarding all other queries to `LAN_DNS_SERVER` — it uses `bind-interfaces` so it does not
   conflict with `systemd-resolved` or other host resolvers
 - When `WEBTERM_ENABLED=true`, the rendered client config sets `DNS = WG_SERVER_TUNNEL_IP` so the
   hostname resolves over the tunnel; re-import the iPhone config after enabling
 - Opt-in: set `WEBTERM_ENABLED=true`, `WEBTERM_PORT`, and `WEBTERM_HOSTNAME` in `settings.env`
-- If the browser shows the plain ttyd page without helper keys, run
-  `sudo ./scripts/rebuild_webservices.sh ttyd` and then hard-refresh the browser
+- If the browser shows stale web terminal UI, run
+  `sudo ./scripts/rebuild_webservices.sh ttyd` and then hard-refresh the browser. Rebuilding
+  `ttyd` also refreshes the coupled home-page API.
 
 ## Notes on SMB and web UIs
 

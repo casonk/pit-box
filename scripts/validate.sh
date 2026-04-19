@@ -34,13 +34,25 @@ check_file "$ROOT_DIR/scripts/harden_ssh.sh"
 check_file "$ROOT_DIR/scripts/package_client.sh"
 check_file "$ROOT_DIR/scripts/inject_toolbar.py"
 check_file "$ROOT_DIR/scripts/render_webterm_index.sh"
+check_file "$ROOT_DIR/scripts/ttyd_session.sh"
+check_file "$ROOT_DIR/scripts/pit_box_api.py"
 check_file "$ROOT_DIR/configs/webterm/ttyd.service.example"
 check_file "$ROOT_DIR/configs/webterm/pit-box-api.service.example"
 check_file "$ROOT_DIR/configs/webterm/dnsmasq-vpn.conf.example"
 check_file "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"
 check_file "$ROOT_DIR/configs/webterm/home.html"
 check_file "$ROOT_DIR/configs/webterm/index.html"
-check_file "$ROOT_DIR/scripts/pit_box_api.py"
+
+if [[ -f "$ROOT_DIR/scripts/ttyd_session.sh" ]]; then
+  if ! grep -q 'display-message -p -t "\$SESS" "#{window_index}"' "$ROOT_DIR/scripts/ttyd_session.sh"; then
+    echo "[invalid] scripts/ttyd_session.sh does not persist the active window on disconnect" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'select-window -t "\$BASE_SESSION:\$current_window"' "$ROOT_DIR/scripts/ttyd_session.sh"; then
+    echo "[invalid] scripts/ttyd_session.sh does not restore the base session window on reconnect" >&2
+    errors=$((errors + 1))
+  fi
+fi
 
 if [[ -f "$ROOT_DIR/build/server/wg0.conf" ]]; then
   if ! grep -q '^\[Interface\]' "$ROOT_DIR/build/server/wg0.conf"; then

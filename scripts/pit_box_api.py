@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """
-Minimal HTTP API for pit-box web terminal window management.
+Minimal HTTP API for pit-box web terminal state and window management.
 Runs on loopback only; Caddy proxies /api/* from the mTLS VPN endpoint.
 
 Endpoints:
-  GET    /api/windows        — list active tmux windows (JSON)
-  DELETE /api/windows/<n>    — kill tmux window N
+  GET    /api/state          - combined tmux windows + live browser terminals
+  GET    /api/windows        - list tmux windows
+  DELETE /api/windows/<n>    - kill tmux window N
 """
-import argparse, json, subprocess, http.server
+import argparse
+import http.server
+import json
+import subprocess
 
 DEFAULT_PORT    = 7682
 DEFAULT_SESSION = "pit-box"
@@ -34,6 +38,45 @@ def list_windows():
     return windows
 
 
+def list_terminals():
+    result = tmux(
+        "list-sessions",
+        "-F",
+        "#{session_name}\t#{session_attached}\t#{session_group}\t#{window_index}\t#{window_name}",
+    )
+    if result.returncode != 0:
+        return []
+
+    terminals = []
+    for line in result.stdout.strip().splitlines():
+        if not line:
+            continue
+        name, attached, group, window_index, window_name = line.split("\t", 4)
+        attached_count = int(attached)
+        if group != SESSION or not name.startswith("pb-") or attached_count < 1:
+            continue
+        terminals.append(
+            {
+                "name": name,
+                "attached": attached_count,
+                "group": group,
+                "current_window": int(window_index),
+                "current_name": window_name,
+            }
+        )
+    terminals.sort(key=lambda item: item["name"])
+    return terminals
+
+
+def get_state():
+    terminals = list_terminals()
+    return {
+        "windows": list_windows(),
+        "terminals": terminals,
+        "live_terminals": len(terminals),
+    }
+
+
 def kill_window(index: int) -> bool:
     r = tmux("kill-window", "-t", f"{SESSION}:{index}")
     return r.returncode == 0
@@ -52,6 +95,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
+        if self.path == "/api/state":
+            self._send(200, get_state())
+            return
         if self.path == "/api/windows":
             self._send(200, list_windows())
         else:
