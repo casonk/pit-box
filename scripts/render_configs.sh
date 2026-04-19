@@ -115,9 +115,9 @@ Wants=network-online.target
 Type=simple
 User=${WEBTERM_USER}
 # Loopback-only: Caddy proxies from the VPN interface, ttyd is not directly reachable.
-# --writable enables keyboard input; tmux provides persistent, multi-window sessions.
-# Caddy serves the HTML pages; ttyd only handles the WebSocket and static assets.
-ExecStart=/usr/bin/ttyd --writable --interface 127.0.0.1 --port ${WEBTERM_PORT} --ping-interval 30 tmux new-session -A -s pit-box
+# ttyd_session.sh creates a grouped tmux session per connection so each browser tab
+# tracks its active window independently.
+ExecStart=/usr/bin/ttyd --writable --interface 127.0.0.1 --port ${WEBTERM_PORT} --ping-interval 30 /etc/pit-box/ttyd_session.sh
 Restart=on-failure
 RestartSec=5
 

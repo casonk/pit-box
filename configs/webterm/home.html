@@ -15,66 +15,152 @@
       padding-top: max(20px, calc(env(safe-area-inset-top) + 8px));
       padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
     }
-    header { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; }
+    header { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
     header h1 {
-      font-size: 20px; font-weight: 600; color: #e6edf3;
+      font-size: 20px;
+      font-weight: 600;
+      color: #e6edf3;
       font-family: ui-monospace, monospace;
     }
     .dot { width: 8px; height: 8px; background: #3fb950; border-radius: 50%; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .stat-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e6edf3;
+      font-family: ui-monospace, monospace;
+    }
     .btn {
-      display: block; width: 100%;
-      padding: 14px 16px; border-radius: 10px;
-      font-size: 15px; font-weight: 600;
-      text-decoration: none; text-align: center;
-      margin-bottom: 10px; border: none; cursor: pointer;
-      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      display: block;
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      margin-bottom: 10px;
+      border: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .btn-green { background: #238636; border: 1px solid #2ea043; color: #fff; }
     .btn-green:active { background: #2ea043; }
     .btn-gray  { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; }
     .btn-gray:active  { background: #2d333b; }
     .section { margin-top: 28px; }
-    .section-label {
-      font-size: 11px; text-transform: uppercase;
-      letter-spacing: 0.06em; color: #8b949e; margin-bottom: 12px;
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
     }
-    .win-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .win-card {
-      background: #161b22; border: 1px solid #30363d;
-      border-radius: 10px; overflow: hidden;
-      display: flex; flex-direction: column;
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #8b949e;
+    }
+    .section-count {
+      font-size: 11px;
+      color: #8b949e;
+      font-family: ui-monospace, monospace;
+    }
+    .win-grid,
+    .term-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .win-card,
+    .term-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     .win-card.active { background: #0d1f0e; border-color: #3fb950; }
-    .win-live {
-      text-align: center; padding: 6px 4px 0;
-      font-size: 10px; color: #3fb950;
-      font-family: ui-monospace, monospace; letter-spacing: 0.04em;
+    .win-live,
+    .term-live {
+      text-align: center;
+      padding: 6px 4px 0;
+      font-size: 10px;
+      color: #3fb950;
+      font-family: ui-monospace, monospace;
+      letter-spacing: 0.04em;
     }
-    .win-open {
-      display: block; padding: 8px 8px 6px;
-      text-align: center; text-decoration: none;
+    .win-open,
+    .term-window {
+      display: block;
+      padding: 8px 8px 6px;
+      text-align: center;
+      text-decoration: none;
       color: #58a6ff;
-      font-family: ui-monospace, monospace; font-size: 22px; font-weight: 700;
-      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      font-family: ui-monospace, monospace;
+      font-size: 22px;
+      font-weight: 700;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
+    .term-window { color: #e6edf3; }
     .win-card.active .win-open { color: #79c0ff; }
     .win-open:active { background: #1c2128; }
-    .win-name {
-      text-align: center; font-size: 10px; color: #484f58;
+    .win-name,
+    .term-name,
+    .term-session {
+      text-align: center;
+      font-size: 10px;
+      color: #8b949e;
       font-family: ui-monospace, monospace;
-      padding: 0 4px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding: 0 4px 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+    .term-session { color: #484f58; }
     .win-card.active .win-name { color: #8b949e; }
     .win-kill {
-      display: block; padding: 7px; text-align: center;
-      background: transparent; border: none; border-top: 1px solid #21262d;
-      color: #484f58; font-size: 11px; cursor: pointer; width: 100%;
-      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      display: block;
+      padding: 7px;
+      text-align: center;
+      background: transparent;
+      border: none;
+      border-top: 1px solid #21262d;
+      color: #484f58;
+      font-size: 11px;
+      cursor: pointer;
+      width: 100%;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .win-kill:active { color: #f85149; background: #200a0a; }
     .empty {
-      color: #484f58; font-size: 14px;
-      text-align: center; padding: 20px 0;
+      color: #484f58;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px 0;
     }
   </style>
 </head>
@@ -84,68 +170,136 @@
     <h1>pit-box</h1>
   </header>
 
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Windows</div>
+      <div class="stat-value" id="stat-windows">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Live terminals</div>
+      <div class="stat-value" id="stat-terminals">0</div>
+    </div>
+  </div>
+
   <a class="btn btn-green" href="/term" id="btn-open">Open Terminal</a>
   <button class="btn btn-gray" id="btn-new">+ New Window</button>
 
   <div class="section">
-    <div class="section-label">Windows</div>
+    <div class="section-head">
+      <div class="section-label">Windows</div>
+      <div class="section-count" id="windows-count">0 total</div>
+    </div>
     <div class="win-grid" id="win-grid">
-      <div class="empty" style="grid-column:1/-1">Loading…</div>
+      <div class="empty" style="grid-column:1/-1">Loading...</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-label">Live terminals</div>
+      <div class="section-count" id="terminals-count">0 connected</div>
+    </div>
+    <div class="term-grid" id="term-grid">
+      <div class="empty" style="grid-column:1/-1">Loading...</div>
     </div>
   </div>
 
   <script>
   (function () {
-    function esc(s) {
-      return String(s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    function readJson(url, options) {
+      return fetch(url, options).then(function (response) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status + ' for ' + url);
+        }
+        return response.json();
+      });
+    }
+
+    function esc(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function setCounts(windowCount, terminalCount) {
+      document.getElementById('stat-windows').textContent = String(windowCount);
+      document.getElementById('stat-terminals').textContent = String(terminalCount);
+      document.getElementById('windows-count').textContent = windowCount + ' total';
+      document.getElementById('terminals-count').textContent = terminalCount + ' connected';
     }
 
     function renderWindows(windows) {
       var grid = document.getElementById('win-grid');
       if (!windows.length) {
-        grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No active windows</div>';
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No tmux windows</div>';
         return;
       }
-      grid.innerHTML = windows.map(function (w) {
-        return '<div class="win-card' + (w.active ? ' active' : '') + '">' +
-          (w.active ? '<div class="win-live">● live</div>' : '') +
-          '<a class="win-open" href="/term?window=' + w.index + '">' + esc(w.index) + '</a>' +
-          '<div class="win-name">' + esc(w.name) + '</div>' +
-          '<button class="win-kill" data-index="' + w.index + '">kill</button>' +
+      grid.innerHTML = windows.map(function (windowInfo) {
+        return '<div class="win-card' + (windowInfo.active ? ' active' : '') + '">' +
+          (windowInfo.active ? '<div class="win-live">active</div>' : '') +
+          '<a class="win-open" href="/term?window=' + windowInfo.index + '">' + esc(windowInfo.index) + '</a>' +
+          '<div class="win-name">' + esc(windowInfo.name) + '</div>' +
+          '<button class="win-kill" data-index="' + windowInfo.index + '">kill</button>' +
         '</div>';
       }).join('');
     }
 
-    function loadWindows() {
-      fetch('/api/windows')
-        .then(function (r) { return r.json(); })
-        .then(renderWindows)
-        .catch(function () { renderWindows([]); });
+    function renderTerminals(terminals) {
+      var grid = document.getElementById('term-grid');
+      if (!terminals.length) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No live browser terminals</div>';
+        return;
+      }
+      grid.innerHTML = terminals.map(function (terminalInfo) {
+        return '<div class="term-card">' +
+          '<div class="term-live">live</div>' +
+          '<div class="term-window">' + esc(terminalInfo.current_window) + '</div>' +
+          '<div class="term-name">' + esc(terminalInfo.current_name) + '</div>' +
+          '<div class="term-session">' + esc(terminalInfo.name) + '</div>' +
+        '</div>';
+      }).join('');
     }
 
-    document.getElementById('win-grid').addEventListener('click', function (e) {
-      var btn = e.target.closest('.win-kill');
-      if (!btn) { return; }
-      var idx = btn.getAttribute('data-index');
-      btn.textContent = '…';
-      fetch('/api/windows/' + idx, { method: 'DELETE' })
-        .then(loadWindows)
-        .catch(loadWindows);
+    function renderState(state) {
+      var windows = Array.isArray(state) ? state : (state.windows || []);
+      var terminals = Array.isArray(state) ? [] : (state.terminals || []);
+      setCounts(windows.length, terminals.length);
+      renderWindows(windows);
+      renderTerminals(terminals);
+    }
+
+    function loadState() {
+      readJson('/api/state', { cache: 'no-store' })
+        .then(renderState)
+        .catch(function () {
+          readJson('/api/windows', { cache: 'no-store' })
+            .then(renderState)
+            .catch(function () { renderState({ windows: [], terminals: [] }); });
+        });
+    }
+
+    document.getElementById('win-grid').addEventListener('click', function (event) {
+      var button = event.target.closest('.win-kill');
+      if (!button) { return; }
+      var index = button.getAttribute('data-index');
+      button.textContent = '...';
+      readJson('/api/windows/' + index, { method: 'DELETE' })
+        .then(loadState)
+        .catch(loadState);
     });
 
     document.getElementById('btn-new').addEventListener('click', function () {
-      // Navigate to terminal with ?action=new — ttyd+tmux creates the window.
       window.location.href = '/term?action=new';
     });
 
-    // Refresh when user returns to this tab (e.g. after closing a terminal).
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) { loadWindows(); }
+      if (!document.hidden) { loadState(); }
     });
 
-    loadWindows();
+    window.setInterval(loadState, 4000);
+    loadState();
   }());
   </script>
 </body>
