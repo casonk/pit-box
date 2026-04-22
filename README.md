@@ -201,7 +201,7 @@ This creates `dist/pit-box-client.zip` containing the client config and a QR-fri
 
 ### 10. (Optional) Install the web terminal
 
-Enable in `settings.env` (`WEBTERM_ENABLED=true`, set `WEBTERM_PORT` and `WEBTERM_HOSTNAME`), then
+Enable in `settings.env` (`WEBTERM_ENABLED=true`, set `WEBTERM_PORT`), then
 re-render and install:
 
 ```bash
@@ -213,13 +213,15 @@ sudo ./scripts/install_webterm.sh
 
 This installs **ttyd** (web terminal), the loopback-only **pit-box API** used by the home page,
 and **dnsmasq** (VPN-scoped DNS resolver), all bound to the WireGuard path only. Re-import the
-client config on your iPhone — the `DNS` field is updated to point at the server so
-`WEBTERM_HOSTNAME` resolves over the tunnel. The install step also deploys the home page and
+client config on your iPhone — the `DNS` field is updated to point at the server so the
+hostname registered as `pit-box-webterm` in `../wiring-harness/services.local.toml` resolves
+over the tunnel. The install step also deploys the home page and
 regenerates the terminal page so mobile browsers get tmux controls, arrows, `Tab`, `Esc`,
 `Ctrl+C`, font scaling, and buffer scroll helpers.
 
-Point a browser (over VPN) at `https://webterm.home/` — you will be prompted to log in with
-your local Unix credentials.
+Point a browser (over VPN) at the hostname registered as `pit-box-webterm` in the sibling
+`wiring-harness` site registry — for example `https://webterm.home/` — and log in with your
+local Unix credentials.
 
 ### 11. Validate
 
@@ -286,7 +288,9 @@ The expectation here is:
   conflict with `systemd-resolved` or other host resolvers
 - When `WEBTERM_ENABLED=true`, the rendered client config sets `DNS = WG_SERVER_TUNNEL_IP` so the
   hostname resolves over the tunnel; re-import the iPhone config after enabling
-- Opt-in: set `WEBTERM_ENABLED=true`, `WEBTERM_PORT`, and `WEBTERM_HOSTNAME` in `settings.env`
+- The canonical webterm/cockpit hostnames now live in `../wiring-harness/services.local.toml`
+- `WEBTERM_HOSTNAME` and `COCKPIT_HOSTNAME` in `settings.env` are only local overrides if the
+  shared registry is unavailable
 - If the browser shows stale web terminal UI, run
   `sudo ./scripts/rebuild_webservices.sh ttyd` and then hard-refresh the browser. Rebuilding
   `ttyd` also refreshes the coupled home-page API.

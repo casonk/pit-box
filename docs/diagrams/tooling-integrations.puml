@@ -14,12 +14,13 @@ rectangle "scripts/harden_ssh.sh\n5 detected tools" as source_scripts_harden_ssh
 rectangle "scripts/install.sh\n0 detected tools" as source_scripts_install_sh #E0F2FE
 rectangle "scripts/install_fedora.sh\n2 detected tools" as source_scripts_install_fedora_sh #E0F2FE
 rectangle "scripts/install_ubuntu.sh\n3 detected tools" as source_scripts_install_ubuntu_sh #E0F2FE
-rectangle "scripts/install_webterm.sh\n9 detected tools" as source_scripts_install_webterm_sh #E0F2FE
+rectangle "scripts/install_webterm.sh\n10 detected tools" as source_scripts_install_webterm_sh #E0F2FE
 rectangle "scripts/package_client.sh\n4 detected tools" as source_scripts_package_client_sh #E0F2FE
 rectangle "scripts/rebuild_webservices.sh\n10 detected tools" as source_scripts_rebuild_webservices_sh #E0F2FE
-rectangle "scripts/render_configs.sh\n2 detected tools" as source_scripts_render_configs_sh #E0F2FE
+rectangle "scripts/render_configs.sh\n3 detected tools" as source_scripts_render_configs_sh #E0F2FE
 rectangle "scripts/render_webterm_index.sh\n2 detected tools" as source_scripts_render_webterm_index_sh #E0F2FE
 rectangle "scripts/run_tachometer_profile.sh\n3 detected tools" as source_scripts_run_tachometer_profile_sh #E0F2FE
+rectangle "scripts/site_registry.sh\n1 detected tool" as source_scripts_site_registry_sh #E0F2FE
 rectangle "scripts/ttyd_session.sh\n1 detected tool" as source_scripts_ttyd_session_sh #E0F2FE
 rectangle "scripts/validate.sh\n0 detected tools" as source_scripts_validate_sh #E0F2FE
 cloud "ALL_SERVICES+=(ttyd" as tool_all_services_ttyd #FEF3C7
@@ -36,7 +37,9 @@ cloud "grep" as tool_grep #FEF3C7
 cloud "install" as tool_install #FEF3C7
 cloud "mkdir" as tool_mkdir #FEF3C7
 cloud "pip" as tool_pip #FEF3C7
+cloud "populate_site_hostname" as tool_populate_site_hostname #FEF3C7
 cloud "pre-commit" as tool_pre_commit #FEF3C7
+cloud "python3" as tool_python3 #FEF3C7
 cloud "qrencode" as tool_qrencode #FEF3C7
 cloud "render_webterm_index.sh" as tool_render_webterm_index_sh #FEF3C7
 cloud "run" as tool_run #FEF3C7
@@ -83,6 +86,7 @@ source_scripts_install_webterm_sh --> tool_dnf
 source_scripts_install_webterm_sh --> tool_grep
 source_scripts_install_webterm_sh --> tool_install
 source_scripts_install_webterm_sh --> tool_mkdir
+source_scripts_install_webterm_sh --> tool_populate_site_hostname
 source_scripts_install_webterm_sh --> tool_render_webterm_index_sh
 source_scripts_install_webterm_sh --> tool_systemctl
 source_scripts_package_client_sh --> tool_cp
@@ -101,14 +105,16 @@ source_scripts_rebuild_webservices_sh --> tool_render_webterm_index_sh
 source_scripts_rebuild_webservices_sh --> tool_systemctl
 source_scripts_render_configs_sh --> tool_cat
 source_scripts_render_configs_sh --> tool_mkdir
+source_scripts_render_configs_sh --> tool_populate_site_hostname
 source_scripts_render_webterm_index_sh --> tool_cp
 source_scripts_render_webterm_index_sh --> tool_mkdir
 source_scripts_run_tachometer_profile_sh --> tool_run
 source_scripts_run_tachometer_profile_sh --> tool_summarize
 source_scripts_run_tachometer_profile_sh --> tool_tachometer
+source_scripts_site_registry_sh --> tool_python3
 source_scripts_ttyd_session_sh --> tool_tmux
 note as toolingGraphSummary
-Scanned 17 tooling entrypoints.
-Detected 29 third-party tools.
+Scanned 18 tooling entrypoints.
+Detected 31 third-party tools.
 end note
 @enduml

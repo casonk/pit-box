@@ -13,12 +13,13 @@ rectangle "scripts/harden_ssh.sh\n0 local shell edges\n5 external tools" as shel
 rectangle "scripts/install.sh\n0 local shell edges\n0 external tools" as shell_scripts_install_sh #DBEAFE
 rectangle "scripts/install_fedora.sh\n0 local shell edges\n2 external tools" as shell_scripts_install_fedora_sh #DBEAFE
 rectangle "scripts/install_ubuntu.sh\n0 local shell edges\n3 external tools" as shell_scripts_install_ubuntu_sh #DBEAFE
-rectangle "scripts/install_webterm.sh\n1 local shell edge\n8 external tools" as shell_scripts_install_webterm_sh #DBEAFE
+rectangle "scripts/install_webterm.sh\n1 local shell edge\n9 external tools" as shell_scripts_install_webterm_sh #DBEAFE
 rectangle "scripts/package_client.sh\n0 local shell edges\n4 external tools" as shell_scripts_package_client_sh #DBEAFE
 rectangle "scripts/rebuild_webservices.sh\n1 local shell edge\n9 external tools" as shell_scripts_rebuild_webservices_sh #DBEAFE
-rectangle "scripts/render_configs.sh\n0 local shell edges\n2 external tools" as shell_scripts_render_configs_sh #DBEAFE
+rectangle "scripts/render_configs.sh\n0 local shell edges\n3 external tools" as shell_scripts_render_configs_sh #DBEAFE
 rectangle "scripts/render_webterm_index.sh\n0 local shell edges\n2 external tools" as shell_scripts_render_webterm_index_sh #DBEAFE
 rectangle "scripts/run_tachometer_profile.sh\n0 local shell edges\n3 external tools" as shell_scripts_run_tachometer_profile_sh #DBEAFE
+rectangle "scripts/site_registry.sh\n0 local shell edges\n1 external tool" as shell_scripts_site_registry_sh #DBEAFE
 rectangle "scripts/ttyd_session.sh\n0 local shell edges\n1 external tool" as shell_scripts_ttyd_session_sh #DBEAFE
 rectangle "scripts/validate.sh\n0 local shell edges\n0 external tools" as shell_scripts_validate_sh #DBEAFE
 cloud "ALL_SERVICES+=(ttyd" as tool_all_services_ttyd #FEF3C7
@@ -31,6 +32,8 @@ cloud "firewall-cmd" as tool_firewall_cmd #FEF3C7
 cloud "firewalld" as tool_firewalld #FEF3C7
 cloud "grep" as tool_grep #FEF3C7
 cloud "mkdir" as tool_mkdir #FEF3C7
+cloud "populate_site_hostname" as tool_populate_site_hostname #FEF3C7
+cloud "python3" as tool_python3 #FEF3C7
 cloud "qrencode" as tool_qrencode #FEF3C7
 cloud "render_webterm_index.sh" as tool_render_webterm_index_sh #FEF3C7
 cloud "run" as tool_run #FEF3C7
@@ -74,6 +77,7 @@ shell_scripts_install_webterm_sh --> tool_cp
 shell_scripts_install_webterm_sh --> tool_dnf
 shell_scripts_install_webterm_sh --> tool_grep
 shell_scripts_install_webterm_sh --> tool_mkdir
+shell_scripts_install_webterm_sh --> tool_populate_site_hostname
 shell_scripts_install_webterm_sh --> tool_render_webterm_index_sh
 shell_scripts_install_webterm_sh --> tool_systemctl
 shell_scripts_package_client_sh --> tool_cp
@@ -91,15 +95,17 @@ shell_scripts_rebuild_webservices_sh --> tool_render_webterm_index_sh
 shell_scripts_rebuild_webservices_sh --> tool_systemctl
 shell_scripts_render_configs_sh --> tool_cat
 shell_scripts_render_configs_sh --> tool_mkdir
+shell_scripts_render_configs_sh --> tool_populate_site_hostname
 shell_scripts_render_webterm_index_sh --> tool_cp
 shell_scripts_render_webterm_index_sh --> tool_mkdir
 shell_scripts_run_tachometer_profile_sh --> tool_run
 shell_scripts_run_tachometer_profile_sh --> tool_summarize
 shell_scripts_run_tachometer_profile_sh --> tool_tachometer
+shell_scripts_site_registry_sh --> tool_python3
 shell_scripts_ttyd_session_sh --> tool_tmux
 note as shellGraphSummary
-Scanned 16 shell scripts.
+Scanned 17 shell scripts.
 Detected 2 local shell edges.
-Detected 24 external tools.
+Detected 26 external tools.
 end note
 @enduml

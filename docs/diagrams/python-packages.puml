@@ -1,0 +1,7 @@
+@startuml packages_pit-box
+set namespaceSeparator none
+top to bottom direction
+skinparam componentStyle rectangle
+rectangle "inject_toolbar\n1 python file" as inject_toolbar
+rectangle "pit_box_api\n1 python file" as pit_box_api
+@enduml
