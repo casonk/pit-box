@@ -25,3 +25,8 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 - When deriving "live terminals" from tmux, filter grouped sessions by the configured base session group as well as the `pb-` prefix. Shared hosts can have unrelated `pb-*` sessions, and the home page should not report them.
 - When browser code falls back between pit-box API endpoints, treat non-2xx `fetch()` responses as failures explicitly. `fetch()` resolves on HTTP 404/500, and the home page can silently render empty state instead of falling back if the code only handles network errors.
 - When using per-browser grouped tmux sessions, sync the disconnecting session's current window back to the base session before killing it. Otherwise every reconnect starts from the base session's stale default window, usually `0`.
+- The canonical private hostnames for `pit-box` browser/admin surfaces belong in
+  the sibling `wiring-harness` site registry. `settings.env` can keep local
+  overrides for emergencies, but render/install flows should resolve
+  `pit-box-webterm` and `pit-box-cockpit` from the shared registry first so the
+  host inventory, DNS, and certificates stay aligned.

@@ -18,19 +18,25 @@ HOME_TARGET="/etc/pit-box/webterm/home.html"
 TTYD_SESSION_TARGET="/etc/pit-box/ttyd_session.sh"
 API_SCRIPT_TARGET="/etc/pit-box/pit_box_api.py"
 
+# shellcheck source=/dev/null
+source "$ROOT_DIR/scripts/site_registry.sh"
+
 [[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings.env" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
 
 : "${WEBTERM_ENABLED:?Missing WEBTERM_ENABLED}"
 : "${WG_SERVER_TUNNEL_IP:?Missing WG_SERVER_TUNNEL_IP}"
-: "${WEBTERM_PORT:?Missing WEBTERM_PORT}"
-: "${WEBTERM_HOSTNAME:?Missing WEBTERM_HOSTNAME}"
 
 if [[ "$WEBTERM_ENABLED" != "true" ]]; then
   echo "WEBTERM_ENABLED is not 'true'. Skipping web terminal installation."
   exit 0
 fi
+
+populate_site_hostname "$ROOT_DIR" "pit-box-webterm" WEBTERM_HOSTNAME
+
+: "${WEBTERM_PORT:?Missing WEBTERM_PORT}"
+: "${WEBTERM_HOSTNAME:?Missing WEBTERM_HOSTNAME}"
 
 for src in "$SERVICE_SOURCE" "$API_SERVICE_SOURCE" "$DNS_CONF_SOURCE" "$CADDY_CONF_SOURCE" "$HOME_SOURCE"; do
   if [[ ! -f "$src" ]]; then

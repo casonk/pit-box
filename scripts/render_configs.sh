@@ -6,6 +6,9 @@ SETTINGS_FILE="$ROOT_DIR/settings.env"
 SECRETS_DIR="$ROOT_DIR/secrets"
 BUILD_DIR="$ROOT_DIR/build"
 
+# shellcheck source=/dev/null
+source "$ROOT_DIR/scripts/site_registry.sh"
+
 require_file() {
   local f="$1"
   [[ -f "$f" ]] || { echo "Missing required file: $f" >&2; exit 1; }
@@ -24,6 +27,13 @@ require_file "$SECRETS_DIR/client.pub"
 
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
+
+if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
+  populate_site_hostname "$ROOT_DIR" "pit-box-webterm" WEBTERM_HOSTNAME
+fi
+if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
+  populate_site_hostname "$ROOT_DIR" "pit-box-cockpit" COCKPIT_HOSTNAME
+fi
 
 for var in SERVER_NAME CLIENT_NAME WG_INTERFACE WG_SERVER_IP WG_SERVER_TUNNEL_IP WG_CLIENT_IP WG_CLIENT_TUNNEL_IP WG_SUBNET_CIDR LAN_IFACE LAN_SUBNET_CIDR LAN_DNS_SERVER WG_LISTEN_PORT PUBLIC_ENDPOINT ROUTING_MODE PERSISTENT_KEEPALIVE; do
   require_var "$var"
