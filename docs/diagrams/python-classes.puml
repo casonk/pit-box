@@ -1,0 +1,13 @@
+@startuml classes_pit-box
+set namespaceSeparator none
+class "Handler" as pit_box_api.Handler {
+  do_DELETE()
+  do_GET()
+  {abstract}log_message()
+}
+note as archilityPythonSurfaceNote
+Minimal class surface detected.
+Scanned 2 Python modules.
+See python-import-deps-scripts-inject_toolbar.svg, python-import-deps-scripts-pit_box_api.svg for module-level imports.
+end note
+@enduml
