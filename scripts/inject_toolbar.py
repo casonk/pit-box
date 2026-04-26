@@ -24,15 +24,22 @@ INJECTED_CSS = """\
   --pb-toolbar-h: 90px;
 }
 html, body { overflow: hidden; }
-#terminal-container {
+#pb-stage {
   position: fixed;
   top: calc(var(--pb-topbar-h) + env(safe-area-inset-top));
+  right: 0;
+  bottom: calc(var(--pb-toolbar-h) + env(safe-area-inset-bottom));
   left: 0;
+  overflow: hidden;
+  background: #0d1117;
+}
+#terminal-container {
+  position: absolute;
+  inset: 0;
   width: calc(100% / var(--pb-scale));
-  height: calc((100% - var(--pb-topbar-h) - var(--pb-toolbar-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom)) / var(--pb-scale));
+  height: calc(100% / var(--pb-scale));
   transform: scale(var(--pb-scale));
   transform-origin: top left;
-  background: #0d1117;
 }
 #pb-topbar,
 #pb-toolbar {
@@ -162,6 +169,16 @@ INJECTED_HTML = """\
 WS_INTERCEPTOR = """\
 <script>
 (function () {
+  // Wrap #terminal-container in a stable fixed stage so that CSS transform
+  // scale never pushes the topbar or toolbar off screen.
+  var _tc = document.getElementById('terminal-container');
+  if (_tc && !document.getElementById('pb-stage')) {
+    var _stage = document.createElement('div');
+    _stage.id = 'pb-stage';
+    _tc.parentNode.insertBefore(_stage, _tc);
+    _stage.appendChild(_tc);
+  }
+
   var SCALE_KEY = 'pb-terminal-scale';
   var SCALE_MIN = 0.8;
   var SCALE_MAX = 1.6;
