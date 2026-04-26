@@ -108,6 +108,10 @@ html, body { overflow: hidden; }
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
+.xterm-screen,
+.xterm canvas {
+  touch-action: pan-y;
+}
 </style>
 """
 
@@ -223,6 +227,8 @@ WS_INTERCEPTOR = """\
       sendTmux(targetWindow);
     } else if (action === 'new') {
       sendTmux('c');
+    } else if (action === 'sessions') {
+      sendTmux('s');
     }
     if (window.location.search) {
       history.replaceState(null, '', window.location.pathname);
@@ -291,6 +297,30 @@ WS_INTERCEPTOR = """\
     event.preventDefault();
     handleControlClick(button);
   });
+
+  // Pinch-to-zoom
+  var _pinchDist0 = 0;
+  var _pinchScale0 = 1;
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+      _pinchDist0 = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX,
+        e.touches[1].clientY - e.touches[0].clientY
+      );
+      _pinchScale0 = readScale();
+    }
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches.length !== 2 || _pinchDist0 === 0) { return; }
+    var dist = Math.hypot(
+      e.touches[1].clientX - e.touches[0].clientX,
+      e.touches[1].clientY - e.touches[0].clientY
+    );
+    applyScale(_pinchScale0 * dist / _pinchDist0);
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (e.touches.length < 2) { _pinchDist0 = 0; }
+  }, { passive: true });
 
   applyScale(readScale());
 }());

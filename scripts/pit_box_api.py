@@ -27,14 +27,24 @@ def tmux(*args) -> subprocess.CompletedProcess:
 
 
 def list_windows():
-    r = tmux("list-windows", "-t", SESSION,
-             "-F", "#{window_index}\t#{window_name}\t#{window_active}")
+    r = tmux(
+        "list-windows", "-t", SESSION, "-F",
+        "#{window_index}\t#{window_name}\t#{window_active}"
+        "\t#{pane_current_command}\t#{window_bell_flag}\t#{pane_dead}",
+    )
     if r.returncode != 0:
         return []
     windows = []
     for line in r.stdout.strip().splitlines():
-        idx, name, active = line.split("\t", 2)
-        windows.append({"index": int(idx), "name": name, "active": active == "1"})
+        idx, name, active, cmd, bell, dead = line.split("\t", 5)
+        windows.append({
+            "index": int(idx),
+            "name":   name,
+            "active": active == "1",
+            "cmd":    cmd,
+            "bell":   bell == "1",
+            "dead":   dead == "1",
+        })
     return windows
 
 
