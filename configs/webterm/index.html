@@ -8,7 +8,7 @@
     :root {
       --pb-scale: 1;
       --pb-topbar-h: 52px;
-      --pb-toolbar-h: 58px;
+      --pb-toolbar-h: 90px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; background: #0d1117; overflow: hidden; }
@@ -54,24 +54,33 @@
     #pb-toolbar {
       bottom: 0;
       min-height: var(--pb-toolbar-h);
+      padding-top: 6px;
       padding-bottom: max(6px, env(safe-area-inset-bottom));
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+      border-top: 1px solid #30363d;
+    }
+    .pb-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      border-top: 1px solid #30363d;
     }
-    #pb-toolbar::-webkit-scrollbar { display: none; }
+    .pb-row::-webkit-scrollbar { display: none; }
     .pb-grow { flex: 1 1 auto; }
     .pb-btn,
     .pb-link {
       flex: 0 0 auto;
-      min-width: 40px;
-      padding: 7px 10px;
+      min-width: 50px;
+      padding: 9px 13px;
       background: #21262d;
       color: #c9d1d9;
       border: 1px solid #30363d;
-      border-radius: 8px;
-      font-size: 12px;
+      border-radius: 10px;
+      font-size: 15px;
       font-family: inherit;
       line-height: 1;
       text-decoration: none;
@@ -93,7 +102,7 @@
     .pb-sep {
       width: 1px;
       min-width: 1px;
-      height: 26px;
+      height: 32px;
       background: #30363d;
       flex: 0 0 auto;
     }
@@ -124,25 +133,28 @@
   </div>
 
   <div id="pb-toolbar">
-    <button class="pb-btn" data-tmux="c">+win</button>
-    <button class="pb-btn" data-tmux="n">next</button>
-    <button class="pb-btn" data-tmux="p">prev</button>
-    <button class="pb-btn" data-tmux="w">list</button>
-    <div class="pb-sep"></div>
-    <button class="pb-btn" data-send="&#x1b;[A">&#x2191;</button>
-    <button class="pb-btn" data-send="&#x1b;[B">&#x2193;</button>
-    <button class="pb-btn" data-send="&#x1b;[D">&#x2190;</button>
-    <button class="pb-btn" data-send="&#x1b;[C">&#x2192;</button>
-    <div class="pb-sep"></div>
-    <button class="pb-btn" data-send="&#x09;">Tab</button>
-    <button class="pb-btn" data-send="&#x1b;">Esc</button>
-    <button class="pb-btn" data-send="&#x03;">Ctrl+C</button>
-    <button class="pb-btn" data-send="&#x04;">Ctrl+D</button>
-    <button class="pb-btn" data-send="&#x0c;">Ctrl+L</button>
-    <div class="pb-sep"></div>
-    <button class="pb-btn" data-scroll="-0.85">PgUp</button>
-    <button class="pb-btn" data-scroll="0.85">PgDn</button>
-    <button class="pb-btn" data-scroll="bottom">Bottom</button>
+    <div class="pb-row">
+      <button class="pb-btn" data-tmux="c">+win</button>
+      <button class="pb-btn" data-tmux="n">next</button>
+      <button class="pb-btn" data-tmux="p">prev</button>
+      <button class="pb-btn" data-tmux="w">list</button>
+      <div class="pb-sep"></div>
+      <button class="pb-btn" data-send="&#x1b;[A">&#x2191;</button>
+      <button class="pb-btn" data-send="&#x1b;[B">&#x2193;</button>
+      <button class="pb-btn" data-send="&#x1b;[D">&#x2190;</button>
+      <button class="pb-btn" data-send="&#x1b;[C">&#x2192;</button>
+    </div>
+    <div class="pb-row">
+      <button class="pb-btn" data-send="&#x09;">Tab</button>
+      <button class="pb-btn" data-send="&#x1b;">Esc</button>
+      <button class="pb-btn" data-send="&#x03;">Ctrl+C</button>
+      <button class="pb-btn" data-send="&#x04;">Ctrl+D</button>
+      <button class="pb-btn" data-send="&#x0c;">Ctrl+L</button>
+      <div class="pb-sep"></div>
+      <button class="pb-btn" data-scroll="-0.85">PgUp</button>
+      <button class="pb-btn" data-scroll="0.85">PgDn</button>
+      <button class="pb-btn" data-scroll="bottom">Bottom</button>
+    </div>
   </div>
 
   <script>
