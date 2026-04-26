@@ -102,6 +102,8 @@
       flex-direction: column;
     }
     .win-card.active { background: #0d1f0e; border-color: #3fb950; }
+    .win-card.bell   { background: #1a1400; border-color: #d29922; }
+    .win-card.stale  { opacity: 0.45; }
     .win-live,
     .term-live {
       text-align: center;
@@ -111,6 +113,33 @@
       font-family: ui-monospace, monospace;
       letter-spacing: 0.04em;
     }
+    .win-live.s-run   { color: #58a6ff; }
+    .win-live.s-bell  { color: #d29922; }
+    .win-live.s-stale { color: #484f58; }
+    .win-cmd {
+      text-align: center;
+      font-size: 9px;
+      color: #58a6ff;
+      font-family: ui-monospace, monospace;
+      padding: 0 4px 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ov-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      margin-bottom: 8px;
+      min-height: 16px;
+    }
+    .ov-run   { color: #58a6ff; }
+    .ov-bell  { color: #d29922; }
+    .ov-stale { color: #484f58; }
+    .ov-sep   { color: #30363d; }
     .win-open,
     .term-window {
       display: block;
@@ -182,13 +211,17 @@
   </div>
 
   <a class="btn btn-green" href="/term" id="btn-open">Open Terminal</a>
-  <button class="btn btn-gray" id="btn-new">+ New Window</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <button class="btn btn-gray" id="btn-new" style="margin-bottom:0">+ New Window</button>
+    <a class="btn btn-gray" href="/term?action=sessions" style="margin-bottom:0">Sessions</a>
+  </div>
 
   <div class="section">
     <div class="section-head">
       <div class="section-label">Windows</div>
       <div class="section-count" id="windows-count">0 total</div>
     </div>
+    <div class="ov-row" id="win-overview"></div>
     <div class="win-grid" id="win-grid">
       <div class="empty" style="grid-column:1/-1">Loading...</div>
     </div>
@@ -230,20 +263,59 @@
       document.getElementById('terminals-count').textContent = terminalCount + ' connected';
     }
 
+    var SHELLS = { bash:1, zsh:1, sh:1, fish:1, dash:1, csh:1, tcsh:1, ksh:1, '-bash':1, '-zsh':1, '-sh':1 };
+
+    function windowStatus(w) {
+      if (w.dead) return 'stale';
+      if (w.bell) return 'bell';
+      if (w.cmd && !SHELLS[w.cmd.toLowerCase()]) return 'running';
+      return 'idle';
+    }
+
     function renderWindows(windows) {
       var grid = document.getElementById('win-grid');
+      var ov   = document.getElementById('win-overview');
       if (!windows.length) {
         grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No tmux windows</div>';
+        ov.innerHTML = '';
         return;
       }
-      grid.innerHTML = windows.map(function (windowInfo) {
-        return '<div class="win-card' + (windowInfo.active ? ' active' : '') + '">' +
-          (windowInfo.active ? '<div class="win-live">active</div>' : '') +
-          '<a class="win-open" href="/term?window=' + windowInfo.index + '">' + esc(windowInfo.index) + '</a>' +
-          '<div class="win-name">' + esc(windowInfo.name) + '</div>' +
-          '<button class="win-kill" data-index="' + windowInfo.index + '">kill</button>' +
+
+      var nRun = 0, nBell = 0, nStale = 0;
+
+      grid.innerHTML = windows.map(function (w) {
+        var status = windowStatus(w);
+        if (status === 'running') { nRun++; }
+        if (status === 'bell')    { nBell++; }
+        if (status === 'stale')   { nStale++; }
+
+        var cardCls = 'win-card' + (w.active ? ' active' : '') +
+          (status === 'bell' ? ' bell' : '') + (status === 'stale' ? ' stale' : '');
+
+        var badge;
+        if (w.active)              { badge = '<div class="win-live">● live</div>'; }
+        else if (status === 'bell')    { badge = '<div class="win-live s-bell">⚠</div>'; }
+        else if (status === 'stale')   { badge = '<div class="win-live s-stale">✗ stale</div>'; }
+        else if (status === 'running') { badge = '<div class="win-live s-run">▶</div>'; }
+        else                           { badge = ''; }
+
+        var cmdLine = (status === 'running') ?
+          '<div class="win-cmd">' + esc(w.cmd) + '</div>' : '';
+
+        return '<div class="' + cardCls + '">' +
+          badge +
+          '<a class="win-open" href="/term?window=' + w.index + '">' + esc(w.index) + '</a>' +
+          '<div class="win-name">' + esc(w.name) + '</div>' +
+          cmdLine +
+          '<button class="win-kill" data-index="' + w.index + '">kill</button>' +
         '</div>';
       }).join('');
+
+      var parts = [];
+      if (nRun)   { parts.push('<span class="ov-run">▶ ' + nRun + ' running</span>'); }
+      if (nBell)  { parts.push('<span class="ov-bell">⚠ ' + nBell + ' needs input</span>'); }
+      if (nStale) { parts.push('<span class="ov-stale">✗ ' + nStale + ' stale</span>'); }
+      ov.innerHTML = parts.join('<span class="ov-sep"> · </span>');
     }
 
     function renderTerminals(terminals) {
