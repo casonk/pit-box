@@ -13,3 +13,7 @@ server=LAN_DNS_SERVER
 
 # Resolve the web terminal hostname to the server's WireGuard tunnel IP.
 address=/WEBTERM_HOSTNAME/WG_SERVER_TUNNEL_IP
+
+# Optional direct VPN-only services can be published the same way when this
+# pit-box dnsmasq drop-in is used instead of the wiring-harness DNS snippet.
+# address=/REMOTE_DESKTOP_HOSTNAME/WG_SERVER_TUNNEL_IP

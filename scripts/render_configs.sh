@@ -28,11 +28,31 @@ require_file "$SECRETS_DIR/client.pub"
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
 
+PRIVATE_DNS_REQUIRED=false
 if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
   populate_site_hostname "$ROOT_DIR" "pit-box-webterm" WEBTERM_HOSTNAME
+  PRIVATE_DNS_REQUIRED=true
 fi
 if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
   populate_site_hostname "$ROOT_DIR" "pit-box-cockpit" COCKPIT_HOSTNAME
+  PRIVATE_DNS_REQUIRED=true
+fi
+if [[ "${REMOTE_DESKTOP_ENABLED:-false}" == "true" ]]; then
+  if [[ -z "${REMOTE_DESKTOP_HOSTNAME:-}" ]]; then
+    if registry_hostname="$(resolve_registry_hostname "$ROOT_DIR" "pit-box-rdp" 2>/dev/null)" && [[ -n "$registry_hostname" ]]; then
+      REMOTE_DESKTOP_HOSTNAME="$registry_hostname"
+      export REMOTE_DESKTOP_HOSTNAME
+    fi
+  fi
+  if [[ -n "${REMOTE_DESKTOP_HOSTNAME:-}" ]]; then
+    PRIVATE_DNS_REQUIRED=true
+  fi
+fi
+if [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]]; then
+  if [[ -z "${REMOTE_DESKTOP_WEB_HOSTNAME:-}" ]]; then
+    populate_site_hostname "$ROOT_DIR" "pit-box-remote-desktop" REMOTE_DESKTOP_WEB_HOSTNAME
+  fi
+  PRIVATE_DNS_REQUIRED=true
 fi
 
 for var in SERVER_NAME CLIENT_NAME WG_INTERFACE WG_SERVER_IP WG_SERVER_TUNNEL_IP WG_CLIENT_IP WG_CLIENT_TUNNEL_IP WG_SUBNET_CIDR LAN_IFACE LAN_SUBNET_CIDR LAN_DNS_SERVER WG_LISTEN_PORT PUBLIC_ENDPOINT ROUTING_MODE PERSISTENT_KEEPALIVE; do
@@ -46,9 +66,10 @@ SERVER_PUBLIC_KEY="$(cat "$SECRETS_DIR/server.pub")"
 CLIENT_PRIVATE_KEY="$(cat "$SECRETS_DIR/client.key")"
 CLIENT_PUBLIC_KEY="$(cat "$SECRETS_DIR/client.pub")"
 
-# When WEBTERM_ENABLED, the client uses the server as its VPN-scoped DNS resolver
-# so that WEBTERM_HOSTNAME resolves over the tunnel.
-if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
+# When private hostnames are enabled, the client uses the server as its
+# VPN-scoped DNS resolver so wiring-harness or pit-box DNS records resolve over
+# the tunnel.
+if [[ "$PRIVATE_DNS_REQUIRED" == "true" ]]; then
   CLIENT_DNS="$WG_SERVER_TUNNEL_IP"
 else
   CLIENT_DNS="$LAN_DNS_SERVER"
@@ -201,6 +222,12 @@ EOF
   if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
     : "${COCKPIT_HOSTNAME:?COCKPIT_ENABLED=true but COCKPIT_HOSTNAME is not set}"
     DNS_ADDRESSES="${DNS_ADDRESSES}"$'\n'"address=/${COCKPIT_HOSTNAME}/${WG_SERVER_TUNNEL_IP}"
+  fi
+  if [[ "${REMOTE_DESKTOP_ENABLED:-false}" == "true" && -n "${REMOTE_DESKTOP_HOSTNAME:-}" ]]; then
+    DNS_ADDRESSES="${DNS_ADDRESSES}"$'\n'"address=/${REMOTE_DESKTOP_HOSTNAME}/${WG_SERVER_TUNNEL_IP}"
+  fi
+  if [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" && -n "${REMOTE_DESKTOP_WEB_HOSTNAME:-}" ]]; then
+    DNS_ADDRESSES="${DNS_ADDRESSES}"$'\n'"address=/${REMOTE_DESKTOP_WEB_HOSTNAME}/${WG_SERVER_TUNNEL_IP}"
   fi
 
   cat > "$BUILD_DIR/webterm/dnsmasq-vpn.conf" <<EOF

@@ -5,11 +5,13 @@
 pit-box is a WireGuard + SSH hardened remote-access setup scaffold. It
 provides a reproducible, settings-driven pipeline for generating WireGuard
 server and client configs, an SSH hardening snippet, firewall rules, and a
-distributable client bundle — without ever committing secret material into
-version control.
+distributable client bundle. It also owns optional VPN-only admin surfaces such
+as ttyd and xrdp — without ever committing secret material into version
+control.
 
 The sole public internet-facing service is WireGuard. SSH is only reachable
-over the VPN tunnel. Admin web UIs are never exposed publicly by default.
+over the VPN tunnel. RDP and admin web UIs are never exposed publicly by
+default.
 
 ---
 
@@ -50,9 +52,12 @@ templates under `configs/`, and writes rendered output to `build/`. The
 scripts/install.sh              (distro-agnostic entry point)
 scripts/install_ubuntu.sh       (Ubuntu/Debian-specific)
 scripts/install_fedora.sh       (Fedora/RHEL-specific)
+scripts/install_remote_desktop.sh (optional xrdp/RDP over WireGuard)
 ```
 
-Install scripts ensure WireGuard, OpenSSH, and required tools are present.
+Install scripts ensure WireGuard, OpenSSH, and required tools are present. The
+remote-desktop installer is opt-in and configures xrdp only when
+`REMOTE_DESKTOP_ENABLED=true`.
 
 ### 3. Key Generation
 
@@ -82,9 +87,9 @@ scripts/configure_firewalld.sh  (Fedora/RHEL — firewalld)
 scripts/enable_ip_forwarding.sh (enables kernel IP forwarding for lan/full-tunnel modes)
 ```
 
-Firewall scripts open only the WireGuard UDP port on the public interface and
-allow forwarded traffic on the WireGuard interface. All other inbound is
-denied.
+Firewall scripts open only the WireGuard UDP port on the public interface,
+allow private services on the WireGuard interface, and allow forwarded traffic
+on the WireGuard interface. All other inbound is denied.
 
 ### 6. Validation
 
@@ -114,6 +119,8 @@ pit-box/
 │   ├── wireguard/
 │   │   ├── wg0.conf.example
 │   │   └── client.conf.example
+│   ├── remote-desktop/
+│   │   └── xrdp.ini.example
 │   └── ssh/
 │       └── sshd_config.snippet.example
 ├── scripts/                # All shell scripts

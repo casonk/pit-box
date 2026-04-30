@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Redeploy rendered web-service configs and restart the affected systemd units.
-# Usage: rebuild_webservices.sh [ttyd] [api] [dns] [caddy] [cockpit]
+# Usage: rebuild_webservices.sh [ttyd] [api] [dns] [caddy] [cockpit] [rdp] [desktop-web]
 # With no arguments all enabled services are rebuilt.
 set -euo pipefail
 
@@ -14,6 +14,8 @@ source "$SETTINGS_FILE"
 ALL_SERVICES=()
 [[ "${WEBTERM_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(ttyd api dns caddy)
 [[ "${COCKPIT_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(cockpit)
+[[ "${REMOTE_DESKTOP_ENABLED:-false}" == "true" ]] && ALL_SERVICES+=(rdp)
+[[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]] && ALL_SERVICES+=(desktop-web)
 
 if [[ ${#ALL_SERVICES[@]} -eq 0 ]]; then
   echo "No web services enabled in settings.env. Nothing to rebuild."
@@ -103,6 +105,17 @@ rebuild_cockpit() {
   echo "[ok] cockpit rebuilt"
 }
 
+rebuild_rdp() {
+  "$ROOT_DIR/scripts/install_remote_desktop.sh"
+  echo "[ok] rdp rebuilt"
+}
+
+rebuild_desktop_web() {
+  "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"
+  "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"
+  echo "[ok] desktop-web rebuilt"
+}
+
 errors=0
 for svc in "${SERVICES[@]}"; do
   case "$svc" in
@@ -111,8 +124,10 @@ for svc in "${SERVICES[@]}"; do
     dns)     rebuild_dns     || { echo "[fail] dns";     errors=$((errors + 1)); } ;;
     caddy)   rebuild_caddy   || { echo "[fail] caddy";   errors=$((errors + 1)); } ;;
     cockpit) rebuild_cockpit || { echo "[fail] cockpit"; errors=$((errors + 1)); } ;;
+    rdp|remote-desktop) rebuild_rdp || { echo "[fail] rdp"; errors=$((errors + 1)); } ;;
+    desktop-web|remote-desktop-web|guacamole) rebuild_desktop_web || { echo "[fail] desktop-web"; errors=$((errors + 1)); } ;;
     *)
-      echo "Unknown service: '$svc'  (valid: ttyd api dns caddy cockpit)" >&2
+      echo "Unknown service: '$svc'  (valid: ttyd api dns caddy cockpit rdp desktop-web)" >&2
       exit 1
       ;;
   esac

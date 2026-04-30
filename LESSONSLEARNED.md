@@ -30,3 +30,10 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   overrides for emergencies, but render/install flows should resolve
   `pit-box-webterm` and `pit-box-cockpit` from the shared registry first so the
   host inventory, DNS, and certificates stay aligned.
+- The official Apache Guacamole Docker image runs as UID/GID `1001:1001`.
+  On Fedora/Podman with SELinux, bind-mounted Guacamole config should use a
+  private container label such as `:Z` and be owned by that container UID/GID
+  rather than root-only permissions.
+- Service login credentials introduced in `pit-box` should resolve through the
+  sibling `auto-pass` repo where possible. Keep direct password settings as
+  ignored emergency fallbacks, not the normal source of truth.
