@@ -1,0 +1,7 @@
+# xrdp globals managed by scripts/install_remote_desktop.sh.
+# The install script edits /etc/xrdp/xrdp.ini in place and leaves a
+# /etc/xrdp/xrdp.ini.pit-box.bak backup on first run.
+
+[Globals]
+port=tcp://10.8.0.1:3389
+crypt_level=high

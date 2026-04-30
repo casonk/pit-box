@@ -16,13 +16,18 @@ source "$SETTINGS_FILE"
 ufw allow "${WG_LISTEN_PORT}/udp"
 ufw allow in on "$WG_INTERFACE" to any port 22 proto tcp
 
-if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
+if [[ "${WEBTERM_ENABLED:-false}" == "true" || "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]]; then
   ufw allow in on "$WG_INTERFACE" to any port 443 proto tcp
   ufw allow in on "$WG_INTERFACE" to any port 53 proto udp
 fi
 
 if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
   ufw allow in on "$WG_INTERFACE" to any port 9090 proto tcp
+fi
+
+if [[ "${REMOTE_DESKTOP_ENABLED:-false}" == "true" ]]; then
+  : "${REMOTE_DESKTOP_PORT:?REMOTE_DESKTOP_ENABLED=true but REMOTE_DESKTOP_PORT is not set}"
+  ufw allow in on "$WG_INTERFACE" to any port "$REMOTE_DESKTOP_PORT" proto tcp
 fi
 
 # Forwarding rules for LAN mode / full-tunnel use cases.
@@ -43,4 +48,4 @@ EOF
 fi
 
 ufw reload
-echo "Configured UFW for WireGuard and SSH-over-VPN."
+echo "Configured UFW for WireGuard-only private services."

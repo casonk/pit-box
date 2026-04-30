@@ -15,19 +15,35 @@ source "$SETTINGS_FILE"
 
 systemctl enable --now firewalld
 
-firewall-cmd --permanent --add-port="${WG_LISTEN_PORT}/udp"
-firewall-cmd --permanent --new-zone=wireguard 2>/dev/null || true
-firewall-cmd --permanent --zone=wireguard --add-interface="$WG_INTERFACE"
-firewall-cmd --permanent --zone=wireguard --add-service=ssh
-firewall-cmd --permanent --zone=wireguard --add-source="$WG_SUBNET_CIDR"
+VPN_ZONE="${FIREWALLD_WG_ZONE:-wireguard}"
+existing_zone="$(firewall-cmd --permanent --get-zone-of-interface="$WG_INTERFACE" 2>/dev/null || true)"
+if [[ -z "$existing_zone" ]]; then
+  existing_zone="$(firewall-cmd --get-zone-of-interface="$WG_INTERFACE" 2>/dev/null || true)"
+fi
 
-if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
-  firewall-cmd --permanent --zone=wireguard --add-service=https
-  firewall-cmd --permanent --zone=wireguard --add-service=dns
+firewall-cmd --permanent --add-port="${WG_LISTEN_PORT}/udp"
+if [[ -n "$existing_zone" ]]; then
+  VPN_ZONE="$existing_zone"
+  echo "Using existing firewalld zone '$VPN_ZONE' for $WG_INTERFACE."
+else
+  firewall-cmd --permanent --new-zone="$VPN_ZONE" 2>/dev/null || true
+  firewall-cmd --permanent --zone="$VPN_ZONE" --add-interface="$WG_INTERFACE"
+fi
+firewall-cmd --permanent --zone="$VPN_ZONE" --add-service=ssh
+firewall-cmd --permanent --zone="$VPN_ZONE" --add-source="$WG_SUBNET_CIDR"
+
+if [[ "${WEBTERM_ENABLED:-false}" == "true" || "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]]; then
+  firewall-cmd --permanent --zone="$VPN_ZONE" --add-service=https
+  firewall-cmd --permanent --zone="$VPN_ZONE" --add-service=dns
 fi
 
 if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
-  firewall-cmd --permanent --zone=wireguard --add-service=cockpit
+  firewall-cmd --permanent --zone="$VPN_ZONE" --add-service=cockpit
+fi
+
+if [[ "${REMOTE_DESKTOP_ENABLED:-false}" == "true" ]]; then
+  : "${REMOTE_DESKTOP_PORT:?REMOTE_DESKTOP_ENABLED=true but REMOTE_DESKTOP_PORT is not set}"
+  firewall-cmd --permanent --zone="$VPN_ZONE" --add-port="${REMOTE_DESKTOP_PORT}/tcp"
 fi
 firewall-cmd --permanent --add-masquerade
 
@@ -35,4 +51,4 @@ firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 0 -i "$WG_INTER
 firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 0 -i "$LAN_IFACE" -o "$WG_INTERFACE" -s "$LAN_SUBNET_CIDR" -d "$WG_SUBNET_CIDR" -j ACCEPT
 
 firewall-cmd --reload
-echo "Configured firewalld for WireGuard and SSH-over-VPN."
+echo "Configured firewalld for WireGuard-only private services."

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Optional xrdp/RDP remote-desktop setup for phone access over WireGuard.
+- Optional Guacamole browser gateway for iPhone Safari remote-desktop access.
+- auto-pass-backed Guacamole credential resolution and export helper.
+
 ## [0.1.0] - 2026-01-01
 
 ### Added
