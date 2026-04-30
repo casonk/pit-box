@@ -24,6 +24,11 @@ check_file "$ROOT_DIR/scripts/install.sh"
 check_file "$ROOT_DIR/scripts/install_ubuntu.sh"
 check_file "$ROOT_DIR/scripts/install_fedora.sh"
 check_file "$ROOT_DIR/scripts/install_webterm.sh"
+check_file "$ROOT_DIR/scripts/install_remote_desktop.sh"
+check_file "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"
+check_file "$ROOT_DIR/scripts/resolve_remote_desktop_password.py"
+check_file "$ROOT_DIR/scripts/export_remote_desktop_password_to_keepass.py"
+check_file "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"
 check_file "$ROOT_DIR/scripts/rebuild_webservices.sh"
 check_file "$ROOT_DIR/scripts/site_registry.sh"
 check_file "$ROOT_DIR/scripts/generate_keys.sh"
@@ -43,6 +48,91 @@ check_file "$ROOT_DIR/configs/webterm/dnsmasq-vpn.conf.example"
 check_file "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"
 check_file "$ROOT_DIR/configs/webterm/home.html"
 check_file "$ROOT_DIR/configs/webterm/index.html"
+check_file "$ROOT_DIR/configs/remote-desktop/xrdp.ini.example"
+check_file "$ROOT_DIR/configs/remote-desktop/docker-compose.guacamole.example.yml"
+check_file "$ROOT_DIR/configs/remote-desktop/caddy-guacamole.caddy.example"
+check_file "$ROOT_DIR/config/auto-pass.example.ini"
+check_file "$ROOT_DIR/docs/remote-desktop.md"
+
+if ! grep -q '^REMOTE_DESKTOP_ENABLED=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_ENABLED" >&2
+  errors=$((errors + 1))
+fi
+if ! grep -q '^REMOTE_DESKTOP_WEB_ENABLED=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_WEB_ENABLED" >&2
+  errors=$((errors + 1))
+fi
+if ! grep -q '^REMOTE_DESKTOP_GUACAMOLE_UID=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_GUACAMOLE_UID" >&2
+  errors=$((errors + 1))
+fi
+if ! grep -q '^REMOTE_DESKTOP_GUACAMOLE_GID=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_GUACAMOLE_GID" >&2
+  errors=$((errors + 1))
+fi
+if ! grep -q '^REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_ENTRY=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_ENTRY" >&2
+  errors=$((errors + 1))
+fi
+if ! grep -q '^REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE" >&2
+  errors=$((errors + 1))
+fi
+
+if [[ -f "$ROOT_DIR/scripts/install_remote_desktop.sh" ]]; then
+  if ! grep -q 'xrdp' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
+    echo "[invalid] scripts/install_remote_desktop.sh does not install or manage xrdp" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'wg-quick@${WG_INTERFACE}.service' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
+    echo "[invalid] scripts/install_remote_desktop.sh does not order xrdp after WireGuard" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh" ]]; then
+  if ! grep -q 'user-mapping.xml' "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/render_remote_desktop_gateway.sh does not render Guacamole user mapping" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q './guacamole-home:/etc/guacamole:ro,Z' "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/render_remote_desktop_gateway.sh does not apply SELinux label to Guacamole config volume" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'resolve_remote_desktop_password.py' "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/render_remote_desktop_gateway.sh does not resolve Guacamole credentials via auto-pass helper" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/resolve_remote_desktop_password.py" ]]; then
+  if ! grep -q 'auto-pass' "$ROOT_DIR/scripts/resolve_remote_desktop_password.py"; then
+    echo "[invalid] scripts/resolve_remote_desktop_password.py does not integrate auto-pass" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/export_remote_desktop_password_to_keepass.py" ]]; then
+  if ! grep -q 'upsert_keepassxc_entry' "$ROOT_DIR/scripts/export_remote_desktop_password_to_keepass.py"; then
+    echo "[invalid] scripts/export_remote_desktop_password_to_keepass.py does not write through auto-pass" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh" ]]; then
+  if ! grep -q 'chown -R "${GUACAMOLE_CONTAINER_UID}:${GUACAMOLE_CONTAINER_GID}"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/install_remote_desktop_gateway.sh does not align Guacamole config ownership with the container UID/GID" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'podman logs --tail=80 remote-desktop_guacamole_1' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/install_remote_desktop_gateway.sh does not print Guacamole logs on readiness failure" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'podman-compose up -d --force-recreate --remove-orphans' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/install_remote_desktop_gateway.sh does not recreate containers after compose changes" >&2
+    errors=$((errors + 1))
+  fi
+fi
 
 if [[ -f "$ROOT_DIR/scripts/ttyd_session.sh" ]]; then
   if ! grep -q 'display-message -p -t "\$SESS" "#{window_index}"' "$ROOT_DIR/scripts/ttyd_session.sh"; then

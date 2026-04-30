@@ -35,6 +35,8 @@ Consent reference: [`../../doc-repos/my-consent/remote-access-and-private-files.
 │   │   └── wg0.conf.example
 │   ├── ssh
 │   │   └── sshd_config.snippet
+│   ├── remote-desktop
+│   │   └── xrdp.ini.example
 │   └── webterm
 │       ├── dnsmasq-vpn.conf.example
 │       └── ttyd.service.example
@@ -47,6 +49,7 @@ Consent reference: [`../../doc-repos/my-consent/remote-access-and-private-files.
     ├── install_fedora.sh
     ├── install_ubuntu.sh
     ├── install_webterm.sh
+    ├── install_remote_desktop.sh
     ├── rebuild_webservices.sh
     ├── generate_keys.sh
     ├── render_configs.sh
@@ -74,6 +77,7 @@ Home Router (UDP 51820 forwarded)
 Linux Server (WireGuard endpoint, SSH server)
   │
   ├── SSH to 10.8.0.1
+  ├── RDP/xrdp to 10.8.0.1:3389 (VPN-only, optional)
   ├── Web Terminal (ttyd) at http://10.8.0.1:7681 (VPN-only)
   ├── SMB to 192.168.1.x or 10.8.0.1
   └── Optional Cockpit / other web UIs only over VPN
@@ -229,6 +233,41 @@ local Unix credentials.
 ./scripts/validate.sh
 ```
 
+### 12. (Optional) Install RDP remote desktop
+
+Enable in `settings.env`:
+
+```bash
+REMOTE_DESKTOP_ENABLED=true
+REMOTE_DESKTOP_PORT=3389
+REMOTE_DESKTOP_BIND_ADDRESS=10.8.0.1
+REMOTE_DESKTOP_WEB_ENABLED=true
+REMOTE_DESKTOP_WEB_PORT=8090
+REMOTE_DESKTOP_WEB_USER=iphone
+REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_ENTRY=pit-box/remote-desktop/guacamole
+REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE=infra
+REMOTE_DESKTOP_GUACAMOLE_UID=1001
+REMOTE_DESKTOP_GUACAMOLE_GID=1001
+```
+
+Create or update the Guacamole login in auto-pass, then render and install
+xrdp plus the Safari gateway:
+
+```bash
+python3 scripts/export_remote_desktop_password_to_keepass.py --generate
+./scripts/render_remote_desktop_gateway.sh
+sudo ./scripts/install_remote_desktop.sh
+sudo ./scripts/install_remote_desktop_gateway.sh
+sudo ./scripts/configure_firewalld.sh   # or configure_ufw.sh
+```
+
+Connect from iPhone Safari only after WireGuard is connected, using the
+`pit-box-remote-desktop` hostname registered in
+`../wiring-harness/services.local.toml`.
+
+See [docs/remote-desktop.md](docs/remote-desktop.md) for the full RDP flow and
+the wiring-harness `ingress = "direct"` registry entry.
+
 ## Access models
 
 ### Model A: Server only
@@ -295,6 +334,23 @@ The expectation here is:
   `sudo ./scripts/rebuild_webservices.sh ttyd` and then hard-refresh the browser. Rebuilding
   `ttyd` also refreshes the coupled home-page API.
 
+## Notes on remote desktop
+
+- **xrdp** provides native RDP access for phone clients over the WireGuard tunnel.
+- **Apache Guacamole** provides the Safari path and proxies browser sessions to
+  the xrdp backend.
+- The installer updates `/etc/xrdp/xrdp.ini` to bind with
+  `port=tcp://REMOTE_DESKTOP_BIND_ADDRESS:REMOTE_DESKTOP_PORT`, leaves a
+  `.pit-box.bak` backup, and starts xrdp after `wg-quick@WG_INTERFACE.service`.
+- The Safari gateway binds Guacamole to loopback and exposes it through the
+  same Caddy/mTLS pattern used by other private pit-box browser surfaces.
+- Firewall scripts allow the RDP port only on the WireGuard interface when
+  `REMOTE_DESKTOP_ENABLED=true`.
+- The optional `pit-box-rdp` hostname belongs in the sibling `wiring-harness`
+  registry with `access_mode = "vpn-only-direct"` and `ingress = "direct"`.
+- Do not forward TCP 3389 on the router or expose RDP directly on the public
+  internet.
+
 ## Notes on SMB and web UIs
 
 - SMB can be used from the iPhone **over the VPN**
@@ -305,6 +361,7 @@ The expectation here is:
 
 - WireGuard up on the iPhone
 - SSH into `10.8.0.1`
+- Optionally connect an RDP client to `10.8.0.1:3389`
 - Optionally use Files → Connect to Server for SMB shares over VPN
 - Keep all admin surfaces private
 

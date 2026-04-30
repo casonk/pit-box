@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SETTINGS_FILE="$ROOT_DIR/settings.env"
+XRDP_INI="${XRDP_INI:-/etc/xrdp/xrdp.ini}"
+XRDP_DROPIN_DIR="/etc/systemd/system/xrdp.service.d"
+XRDP_DROPIN="$XRDP_DROPIN_DIR/10-pit-box-wireguard.conf"
+
+# shellcheck source=/dev/null
+source "$ROOT_DIR/scripts/site_registry.sh"
+
+[[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings.env" >&2; exit 1; }
+# shellcheck source=/dev/null
+source "$SETTINGS_FILE"
+
+: "${REMOTE_DESKTOP_ENABLED:?Missing REMOTE_DESKTOP_ENABLED}"
+: "${WG_INTERFACE:?Missing WG_INTERFACE}"
+: "${WG_SERVER_TUNNEL_IP:?Missing WG_SERVER_TUNNEL_IP}"
+: "${WG_SUBNET_CIDR:?Missing WG_SUBNET_CIDR}"
+
+if [[ "$REMOTE_DESKTOP_ENABLED" != "true" ]]; then
+  echo "REMOTE_DESKTOP_ENABLED is not 'true'. Skipping remote desktop installation."
+  exit 0
+fi
+
+: "${REMOTE_DESKTOP_PORT:?Missing REMOTE_DESKTOP_PORT}"
+REMOTE_DESKTOP_BIND_ADDRESS="${REMOTE_DESKTOP_BIND_ADDRESS:-$WG_SERVER_TUNNEL_IP}"
+
+if [[ -z "${REMOTE_DESKTOP_HOSTNAME:-}" ]]; then
+  if registry_hostname="$(resolve_registry_hostname "$ROOT_DIR" "pit-box-rdp" 2>/dev/null)" && [[ -n "$registry_hostname" ]]; then
+    REMOTE_DESKTOP_HOSTNAME="$registry_hostname"
+    export REMOTE_DESKTOP_HOSTNAME
+  fi
+fi
+
+install_packages() {
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get install -y xrdp xorgxrdp dbus-x11
+  elif command -v dnf >/dev/null 2>&1; then
+    dnf install -y xrdp xorgxrdp
+  else
+    echo "Unsupported package manager. Install xrdp and xorgxrdp manually." >&2
+    exit 1
+  fi
+}
+
+backup_once() {
+  local path="$1"
+  [[ -f "$path" ]] || return 0
+  [[ -f "${path}.pit-box.bak" ]] || cp "$path" "${path}.pit-box.bak"
+}
+
+set_global_key() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  local tmp="${file}.pit-box.tmp"
+
+  awk -v key="$key" -v value="$value" '
+    BEGIN { in_globals = 0; done = 0 }
+    /^[[:space:]]*\[/ {
+      if (in_globals && !done) {
+        print key "=" value
+        done = 1
+      }
+      in_globals = ($0 ~ /^[[:space:]]*\[Globals\][[:space:]]*$/)
+      print
+      next
+    }
+    in_globals && $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+      if (!done) {
+        print key "=" value
+        done = 1
+      }
+      next
+    }
+    { print }
+    END {
+      if (in_globals && !done) {
+        print key "=" value
+      }
+    }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+install_packages
+
+[[ -f "$XRDP_INI" ]] || {
+  echo "Missing $XRDP_INI after package install; cannot configure xrdp." >&2
+  exit 1
+}
+
+backup_once "$XRDP_INI"
+set_global_key "$XRDP_INI" port "tcp://${REMOTE_DESKTOP_BIND_ADDRESS}:${REMOTE_DESKTOP_PORT}"
+set_global_key "$XRDP_INI" crypt_level high
+
+mkdir -p "$XRDP_DROPIN_DIR"
+cat > "$XRDP_DROPIN" <<EOF
+[Unit]
+After=network-online.target wg-quick@${WG_INTERFACE}.service
+Wants=network-online.target wg-quick@${WG_INTERFACE}.service
+EOF
+
+systemctl daemon-reload
+systemctl enable --now xrdp-sesman 2>/dev/null || true
+systemctl enable --now xrdp
+systemctl restart xrdp-sesman 2>/dev/null || true
+systemctl restart xrdp
+
+echo "Remote desktop installed and started."
+echo "  RDP target: ${REMOTE_DESKTOP_HOSTNAME:-$WG_SERVER_TUNNEL_IP}:${REMOTE_DESKTOP_PORT}"
+echo "  Bind address: ${REMOTE_DESKTOP_BIND_ADDRESS}"
+echo "Only reachable over the WireGuard VPN when firewall rules are applied."
+echo "Run ./scripts/configure_ufw.sh or ./scripts/configure_firewalld.sh to allow RDP only on ${WG_INTERFACE}."

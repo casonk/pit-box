@@ -68,3 +68,51 @@ Check:
 1. `/etc/pit-box/ttyd_session.sh` includes both `display-message` and `select-window`
 2. `sudo ./scripts/rebuild_webservices.sh ttyd` redeploys the updated ttyd session wrapper
 3. disconnect and reconnect after the ttyd restart so the next browser session inherits the last tmux window
+
+## RDP does not connect over VPN
+
+Check:
+
+1. WireGuard is connected on the phone and `10.8.0.1` is reachable.
+2. `REMOTE_DESKTOP_ENABLED=true` and `sudo ./scripts/install_remote_desktop.sh` has been run.
+3. `systemctl status xrdp` and `systemctl status xrdp-sesman` are healthy.
+4. firewall rules were refreshed with `sudo ./scripts/configure_firewalld.sh` or `sudo ./scripts/configure_ufw.sh`.
+5. the phone connects to `10.8.0.1:3389` or the `pit-box-rdp` private hostname, not the public WAN address.
+6. the desktop account can log in locally and is not already blocked by the desktop session manager.
+
+## Safari remote desktop does not load
+
+Check:
+
+1. WireGuard is connected on the phone.
+2. `REMOTE_DESKTOP_WEB_ENABLED=true` and `sudo ./scripts/install_remote_desktop_gateway.sh` has been run.
+3. `sudo podman ps` shows the Guacamole and guacd containers.
+4. `sudo ss -ltnp | grep ':8090'` shows Guacamole bound on loopback.
+5. `/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy` exists and `sudo systemctl status caddy` is healthy.
+6. `./scripts/render_remote_desktop_gateway.sh` reports `Credential source: auto-pass:...`.
+7. the iPhone has the current wiring-harness mTLS profile installed.
+
+If the Guacamole container keeps restarting or nothing is listening on
+`127.0.0.1:8090`, check the container state and logs:
+
+```bash
+sudo podman ps -a --filter name=remote-desktop
+sudo podman logs --tail=120 remote-desktop_guacamole_1
+sudo podman logs --tail=80 remote-desktop_guacd_1
+```
+
+On Fedora/SELinux systems the rendered compose file should mount
+`./guacamole-home:/etc/guacamole:ro,Z`, and the installer should own
+`/etc/pit-box/remote-desktop/guacamole-home` as the Guacamole container
+UID/GID, defaulting to `1001:1001`.
+
+If the page loads but Guacamole says login failed, retrieve the expected
+credential through auto-pass and rerender/reinstall the gateway:
+
+```bash
+cd ../auto-pass
+PYTHONPATH=src python3 -m auto_pass --profile infra get pit-box/remote-desktop/guacamole
+cd ../pit-box
+./scripts/render_remote_desktop_gateway.sh
+sudo ./scripts/install_remote_desktop_gateway.sh
+```

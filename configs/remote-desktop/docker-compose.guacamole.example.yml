@@ -1,0 +1,19 @@
+services:
+  guacd:
+    image: docker.io/guacamole/guacd:1.6.0
+    restart: unless-stopped
+
+  guacamole:
+    image: docker.io/guacamole/guacamole:1.6.0
+    depends_on:
+      - guacd
+    restart: unless-stopped
+    environment:
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: "4822"
+      GUACAMOLE_HOME: /etc/guacamole
+      WEBAPP_CONTEXT: ROOT
+    volumes:
+      - ./guacamole-home:/etc/guacamole:ro,Z
+    ports:
+      - "127.0.0.1:8090:8080"

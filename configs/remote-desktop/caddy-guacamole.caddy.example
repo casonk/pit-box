@@ -1,0 +1,22 @@
+# pit-box Safari remote desktop — deployed to
+# /etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy.
+# Caddy terminates wiring-harness mTLS and proxies to the local Guacamole
+# container, which then connects to xrdp over the WireGuard tunnel address.
+
+https://REMOTE_DESKTOP_WEB_HOSTNAME {
+	tls CADDY_CERTS_DIR/server.crt CADDY_CERTS_DIR/server.key {
+		client_auth {
+			mode require_and_verify
+			trust_pool file CADDY_CERTS_DIR/ca.crt
+		}
+	}
+
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:REMOTE_DESKTOP_WEB_PORT
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "no-referrer"
+	}
+}

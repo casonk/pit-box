@@ -8,4 +8,6 @@ path = "./util-repos/pit-box"
 
 [downstream_repos]
 tracking_basis = "explicit code/config/operational integrations"
-paths = []
+paths = [
+  "./util-repos/auto-pass",
+]
