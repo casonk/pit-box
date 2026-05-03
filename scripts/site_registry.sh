@@ -1,26 +1,32 @@
 #!/usr/bin/env bash
 
-resolve_registry_hostname() {
+resolve_registry_field() {
   local root_dir="$1"
   local site_name="$2"
+  local field_name="$3"
   local wiring_repo="${PIT_BOX_WIRING_HARNESS_REPO:-$root_dir/../wiring-harness}"
 
   [[ -f "$wiring_repo/scripts/site_registry.py" ]] || return 1
 
-  python3 - "$wiring_repo" "$site_name" <<'PYEOF'
+  python3 - "$wiring_repo" "$site_name" "$field_name" <<'PYEOF'
 from pathlib import Path
 import sys
 
 repo = Path(sys.argv[1]).resolve()
 site_name = sys.argv[2]
+field_name = sys.argv[3]
 sys.path.insert(0, str(repo / "scripts"))
 
 from site_registry import find_site, load_sites
 
 site = find_site(load_sites(repo / "services.toml"), site_name)
-if site and site.get("hostname"):
-    print(site["hostname"])
+if site and site.get(field_name):
+    print(site[field_name])
 PYEOF
+}
+
+resolve_registry_hostname() {
+  resolve_registry_field "$1" "$2" hostname
 }
 
 populate_site_hostname() {

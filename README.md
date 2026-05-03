@@ -54,6 +54,7 @@ Consent reference: [`../../doc-repos/my-consent/remote-access-and-private-files.
     ├── generate_keys.sh
     ├── render_configs.sh
     ├── enable_ip_forwarding.sh
+    ├── configure_firewall.sh
     ├── configure_ufw.sh
     ├── configure_firewalld.sh
     ├── harden_ssh.sh
@@ -175,17 +176,12 @@ sudo ./scripts/enable_ip_forwarding.sh
 
 ### 7. Configure the firewall
 
-For Ubuntu with UFW:
-
 ```bash
-sudo ./scripts/configure_ufw.sh
+sudo ./scripts/configure_firewall.sh
 ```
 
-For Fedora with firewalld:
-
-```bash
-sudo ./scripts/configure_firewalld.sh
-```
+This auto-detects firewalld or UFW. The distro-specific scripts remain available
+for direct use when you need to force one backend.
 
 ### 8. Harden SSH
 
@@ -210,7 +206,7 @@ re-render and install:
 
 ```bash
 ./scripts/render_configs.sh
-sudo ./scripts/configure_ufw.sh        # or configure_firewalld.sh
+sudo ./scripts/configure_firewall.sh
 sudo ./scripts/install_webterm.sh
 ./scripts/package_client.sh            # re-package — client DNS was updated
 ```
@@ -258,7 +254,7 @@ python3 scripts/export_remote_desktop_password_to_keepass.py --generate
 ./scripts/render_remote_desktop_gateway.sh
 sudo ./scripts/install_remote_desktop.sh
 sudo ./scripts/install_remote_desktop_gateway.sh
-sudo ./scripts/configure_firewalld.sh   # or configure_ufw.sh
+sudo ./scripts/configure_firewall.sh
 ```
 
 Connect from iPhone Safari only after WireGuard is connected, using the
@@ -341,7 +337,10 @@ The expectation here is:
   the xrdp backend.
 - The installer updates `/etc/xrdp/xrdp.ini` to bind with
   `port=tcp://REMOTE_DESKTOP_BIND_ADDRESS:REMOTE_DESKTOP_PORT`, leaves a
-  `.pit-box.bak` backup, and starts xrdp after `wg-quick@WG_INTERFACE.service`.
+  `.pit-box.bak` backup, enables `Xorg` as the default xrdp session, detects an
+  installed X11 desktop session from `/usr/share/xsessions` unless
+  `REMOTE_DESKTOP_SESSION` is set, and starts xrdp after
+  `wg-quick@WG_INTERFACE.service`.
 - The Safari gateway binds Guacamole to loopback and exposes it through the
   same Caddy/mTLS pattern used by other private pit-box browser surfaces.
 - Firewall scripts allow the RDP port only on the WireGuard interface when

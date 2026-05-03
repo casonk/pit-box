@@ -3,6 +3,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SETTINGS_FILE="$ROOT_DIR/settings.env"
+
+if (( EUID != 0 )); then
+  echo "This script manages system firewall rules. Run it with sudo:" >&2
+  echo "  sudo ./scripts/configure_ufw.sh" >&2
+  exit 1
+fi
+
 [[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings.env" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
