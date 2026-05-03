@@ -76,7 +76,7 @@ Check:
 1. WireGuard is connected on the phone and `10.8.0.1` is reachable.
 2. `REMOTE_DESKTOP_ENABLED=true` and `sudo ./scripts/install_remote_desktop.sh` has been run.
 3. `systemctl status xrdp` and `systemctl status xrdp-sesman` are healthy.
-4. firewall rules were refreshed with `sudo ./scripts/configure_firewalld.sh` or `sudo ./scripts/configure_ufw.sh`.
+4. firewall rules were refreshed with `sudo ./scripts/configure_firewall.sh`.
 5. the phone connects to `10.8.0.1:3389` or the `pit-box-rdp` private hostname, not the public WAN address.
 6. the desktop account can log in locally and is not already blocked by the desktop session manager.
 
@@ -86,19 +86,20 @@ Check:
 
 1. WireGuard is connected on the phone.
 2. `REMOTE_DESKTOP_WEB_ENABLED=true` and `sudo ./scripts/install_remote_desktop_gateway.sh` has been run.
-3. `sudo podman ps` shows the Guacamole and guacd containers.
-4. `sudo ss -ltnp | grep ':8090'` shows Guacamole bound on loopback.
-5. `/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy` exists and `sudo systemctl status caddy` is healthy.
-6. `./scripts/render_remote_desktop_gateway.sh` reports `Credential source: auto-pass:...`.
-7. the iPhone has the current wiring-harness mTLS profile installed.
+3. `sudo systemctl status pit-box-guacamole.service pit-box-guacd.service` are healthy.
+4. `sudo podman ps` shows the `pit-box-guacamole` and `pit-box-guacd` containers.
+5. `sudo ss -ltnp | grep ':8090'` shows Guacamole bound on loopback.
+6. `/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy` exists and `sudo systemctl status caddy` is healthy.
+7. `./scripts/render_remote_desktop_gateway.sh` reports `Credential source: auto-pass:...`.
+8. the iPhone has the current wiring-harness mTLS profile installed.
 
 If the Guacamole container keeps restarting or nothing is listening on
 `127.0.0.1:8090`, check the container state and logs:
 
 ```bash
-sudo podman ps -a --filter name=remote-desktop
-sudo podman logs --tail=120 remote-desktop_guacamole_1
-sudo podman logs --tail=80 remote-desktop_guacd_1
+sudo podman ps -a --filter name=pit-box-guac
+sudo podman logs --tail=120 pit-box-guacamole
+sudo podman logs --tail=80 pit-box-guacd
 ```
 
 On Fedora/SELinux systems the rendered compose file should mount

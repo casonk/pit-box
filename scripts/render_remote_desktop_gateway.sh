@@ -118,6 +118,54 @@ services:
       - "127.0.0.1:${REMOTE_DESKTOP_WEB_PORT}:8080"
 EOF
 
+cat > "$BUILD_DIR/pit-box-guacamole.network" <<EOF
+[Network]
+NetworkName=pit-box-guacamole
+EOF
+
+cat > "$BUILD_DIR/pit-box-guacd.container" <<EOF
+[Unit]
+Description=Guacamole Daemon (guacd)
+After=network-online.target
+
+[Container]
+Image=${REMOTE_DESKTOP_GUACD_IMAGE}
+ContainerName=pit-box-guacd
+Network=pit-box-guacamole.network
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > "$BUILD_DIR/pit-box-guacamole.container" <<EOF
+[Unit]
+Description=Apache Guacamole
+Requires=pit-box-guacd.service
+After=pit-box-guacd.service network-online.target
+
+[Container]
+Image=${REMOTE_DESKTOP_GUACAMOLE_IMAGE}
+ContainerName=pit-box-guacamole
+Environment=GUACD_HOSTNAME=pit-box-guacd
+Environment=GUACD_PORT=4822
+Environment=GUACAMOLE_HOME=/etc/guacamole
+Environment=WEBAPP_CONTEXT=ROOT
+Volume=/etc/pit-box/remote-desktop/guacamole-home:/etc/guacamole:ro,Z
+PublishPort=127.0.0.1:${REMOTE_DESKTOP_WEB_PORT}:8080
+Network=pit-box-guacamole.network
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > "$BUILD_DIR/caddy-guacamole.caddy" <<EOF
 https://${REMOTE_DESKTOP_WEB_HOSTNAME} {
 	tls ${CADDY_CERTS_DIR}/server.crt ${CADDY_CERTS_DIR}/server.key {
@@ -142,5 +190,8 @@ echo "Rendered build/remote-desktop/docker-compose.yml"
 echo "Rendered build/remote-desktop/guacamole-home/guacamole.properties"
 echo "Rendered build/remote-desktop/guacamole-home/user-mapping.xml"
 echo "Rendered build/remote-desktop/caddy-guacamole.caddy"
+echo "Rendered build/remote-desktop/pit-box-guacamole.network"
+echo "Rendered build/remote-desktop/pit-box-guacd.container"
+echo "Rendered build/remote-desktop/pit-box-guacamole.container"
 echo "Safari URL: https://${REMOTE_DESKTOP_WEB_HOSTNAME}/"
 echo "Credential source: ${REMOTE_DESKTOP_WEB_PASSWORD_SOURCE:-settings.env}"

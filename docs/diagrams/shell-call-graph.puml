@@ -5,6 +5,8 @@ skinparam shadowing false
 skinparam defaultFontName Monospace
 skinparam componentStyle rectangle
 skinparam linetype ortho
+rectangle "configs/remote-desktop/startwm-pit-box.sh\n0 local shell edges\n1 external tool" as shell_configs_remote_desktop_startwm_pit_box_sh #DBEAFE
+rectangle "scripts/configure_firewall.sh\n0 local shell edges\n1 external tool" as shell_scripts_configure_firewall_sh #DBEAFE
 rectangle "scripts/configure_firewalld.sh\n0 local shell edges\n2 external tools" as shell_scripts_configure_firewalld_sh #DBEAFE
 rectangle "scripts/configure_ufw.sh\n0 local shell edges\n4 external tools" as shell_scripts_configure_ufw_sh #DBEAFE
 rectangle "scripts/enable_ip_forwarding.sh\n0 local shell edges\n2 external tools" as shell_scripts_enable_ip_forwarding_sh #DBEAFE
@@ -12,32 +14,56 @@ rectangle "scripts/generate_keys.sh\n0 local shell edges\n3 external tools" as s
 rectangle "scripts/harden_ssh.sh\n0 local shell edges\n5 external tools" as shell_scripts_harden_ssh_sh #DBEAFE
 rectangle "scripts/install.sh\n0 local shell edges\n0 external tools" as shell_scripts_install_sh #DBEAFE
 rectangle "scripts/install_fedora.sh\n0 local shell edges\n2 external tools" as shell_scripts_install_fedora_sh #DBEAFE
+rectangle "scripts/install_remote_desktop.sh\n1 local shell edge\n15 external tools" as shell_scripts_install_remote_desktop_sh #DBEAFE
+rectangle "scripts/install_remote_desktop_gateway.sh\n1 local shell edge\n13 external tools" as shell_scripts_install_remote_desktop_gateway_sh #DBEAFE
 rectangle "scripts/install_ubuntu.sh\n0 local shell edges\n3 external tools" as shell_scripts_install_ubuntu_sh #DBEAFE
 rectangle "scripts/install_webterm.sh\n1 local shell edge\n9 external tools" as shell_scripts_install_webterm_sh #DBEAFE
 rectangle "scripts/package_client.sh\n0 local shell edges\n4 external tools" as shell_scripts_package_client_sh #DBEAFE
-rectangle "scripts/rebuild_webservices.sh\n1 local shell edge\n9 external tools" as shell_scripts_rebuild_webservices_sh #DBEAFE
+rectangle "scripts/rebuild_webservices.sh\n1 local shell edge\n15 external tools" as shell_scripts_rebuild_webservices_sh #DBEAFE
 rectangle "scripts/render_configs.sh\n0 local shell edges\n3 external tools" as shell_scripts_render_configs_sh #DBEAFE
+rectangle "scripts/render_remote_desktop_gateway.sh\n0 local shell edges\n5 external tools" as shell_scripts_render_remote_desktop_gateway_sh #DBEAFE
 rectangle "scripts/render_webterm_index.sh\n0 local shell edges\n2 external tools" as shell_scripts_render_webterm_index_sh #DBEAFE
 rectangle "scripts/run_tachometer_profile.sh\n0 local shell edges\n3 external tools" as shell_scripts_run_tachometer_profile_sh #DBEAFE
 rectangle "scripts/site_registry.sh\n0 local shell edges\n1 external tool" as shell_scripts_site_registry_sh #DBEAFE
 rectangle "scripts/ttyd_session.sh\n0 local shell edges\n1 external tool" as shell_scripts_ttyd_session_sh #DBEAFE
 rectangle "scripts/validate.sh\n0 local shell edges\n0 external tools" as shell_scripts_validate_sh #DBEAFE
+cloud "!inserted" as tool_inserted #FEF3C7
 cloud "ALL_SERVICES+=(ttyd" as tool_all_services_ttyd #FEF3C7
+cloud "^[[:space:]]*[" as tool_space #FEF3C7
 cloud "apt-get" as tool_apt_get #FEF3C7
+cloud "basename" as tool_basename #FEF3C7
 cloud "caddy" as tool_caddy #FEF3C7
 cloud "cat" as tool_cat #FEF3C7
+cloud "chmod" as tool_chmod #FEF3C7
+cloud "chown" as tool_chown #FEF3C7
 cloud "cp" as tool_cp #FEF3C7
+cloud "desktop-web" as tool_desktop_web #FEF3C7
 cloud "dnf" as tool_dnf #FEF3C7
 cloud "firewall-cmd" as tool_firewall_cmd #FEF3C7
 cloud "firewalld" as tool_firewalld #FEF3C7
 cloud "grep" as tool_grep #FEF3C7
+cloud "in_section" as tool_in_section #FEF3C7
+cloud "inserted" as tool_inserted_2 #FEF3C7
+cloud "install_remote_desktop.sh" as tool_install_remote_desktop_sh #FEF3C7
+cloud "install_remote_desktop_gateway.sh" as tool_install_remote_desktop_gateway_sh #FEF3C7
+cloud "md5sum" as tool_md5sum #FEF3C7
 cloud "mkdir" as tool_mkdir #FEF3C7
+cloud "mv" as tool_mv #FEF3C7
+cloud "next" as tool_next #FEF3C7
+cloud "podman" as tool_podman #FEF3C7
 cloud "populate_site_hostname" as tool_populate_site_hostname #FEF3C7
+cloud "print" as tool_print #FEF3C7
 cloud "python3" as tool_python3 #FEF3C7
 cloud "qrencode" as tool_qrencode #FEF3C7
+cloud "rdp" as tool_rdp #FEF3C7
+cloud "remote-desktop-web" as tool_remote_desktop_web #FEF3C7
+cloud "render_remote_desktop_gateway.sh" as tool_render_remote_desktop_gateway_sh #FEF3C7
 cloud "render_webterm_index.sh" as tool_render_webterm_index_sh #FEF3C7
+cloud "resolve_registry_field" as tool_resolve_registry_field #FEF3C7
+cloud "rm" as tool_rm #FEF3C7
 cloud "run" as tool_run #FEF3C7
 cloud "sed" as tool_sed #FEF3C7
+cloud "sleep" as tool_sleep #FEF3C7
 cloud "sshd" as tool_sshd #FEF3C7
 cloud "summarize" as tool_summarize #FEF3C7
 cloud "sysctl" as tool_sysctl #FEF3C7
@@ -48,8 +74,12 @@ cloud "tmux" as tool_tmux #FEF3C7
 cloud "ufw" as tool_ufw #FEF3C7
 cloud "wg" as tool_wg #FEF3C7
 cloud "zip" as tool_zip #FEF3C7
+shell_scripts_install_remote_desktop_gateway_sh --> shell_scripts_install_sh : call
+shell_scripts_install_remote_desktop_sh --> shell_scripts_install_sh : call
 shell_scripts_install_webterm_sh --> shell_scripts_install_sh : call
 shell_scripts_rebuild_webservices_sh --> shell_scripts_install_sh : call
+shell_configs_remote_desktop_startwm_pit_box_sh --> tool_sed
+shell_scripts_configure_firewall_sh --> tool_systemctl
 shell_scripts_configure_firewalld_sh --> tool_firewall_cmd
 shell_scripts_configure_firewalld_sh --> tool_systemctl
 shell_scripts_configure_ufw_sh --> tool_cat
@@ -68,6 +98,34 @@ shell_scripts_harden_ssh_sh --> tool_sshd
 shell_scripts_harden_ssh_sh --> tool_systemctl
 shell_scripts_install_fedora_sh --> tool_firewalld
 shell_scripts_install_fedora_sh --> tool_systemctl
+shell_scripts_install_remote_desktop_gateway_sh --> tool_apt_get
+shell_scripts_install_remote_desktop_gateway_sh --> tool_caddy
+shell_scripts_install_remote_desktop_gateway_sh --> tool_chmod
+shell_scripts_install_remote_desktop_gateway_sh --> tool_chown
+shell_scripts_install_remote_desktop_gateway_sh --> tool_cp
+shell_scripts_install_remote_desktop_gateway_sh --> tool_dnf
+shell_scripts_install_remote_desktop_gateway_sh --> tool_grep
+shell_scripts_install_remote_desktop_gateway_sh --> tool_mkdir
+shell_scripts_install_remote_desktop_gateway_sh --> tool_podman
+shell_scripts_install_remote_desktop_gateway_sh --> tool_resolve_registry_field
+shell_scripts_install_remote_desktop_gateway_sh --> tool_rm
+shell_scripts_install_remote_desktop_gateway_sh --> tool_sleep
+shell_scripts_install_remote_desktop_gateway_sh --> tool_systemctl
+shell_scripts_install_remote_desktop_sh --> tool_inserted
+shell_scripts_install_remote_desktop_sh --> tool_space
+shell_scripts_install_remote_desktop_sh --> tool_apt_get
+shell_scripts_install_remote_desktop_sh --> tool_basename
+shell_scripts_install_remote_desktop_sh --> tool_cat
+shell_scripts_install_remote_desktop_sh --> tool_chmod
+shell_scripts_install_remote_desktop_sh --> tool_cp
+shell_scripts_install_remote_desktop_sh --> tool_dnf
+shell_scripts_install_remote_desktop_sh --> tool_in_section
+shell_scripts_install_remote_desktop_sh --> tool_inserted_2
+shell_scripts_install_remote_desktop_sh --> tool_mkdir
+shell_scripts_install_remote_desktop_sh --> tool_mv
+shell_scripts_install_remote_desktop_sh --> tool_next
+shell_scripts_install_remote_desktop_sh --> tool_print
+shell_scripts_install_remote_desktop_sh --> tool_systemctl
 shell_scripts_install_ubuntu_sh --> tool_apt_get
 shell_scripts_install_ubuntu_sh --> tool_systemctl
 shell_scripts_install_ubuntu_sh --> tool_ufw
@@ -88,14 +146,25 @@ shell_scripts_rebuild_webservices_sh --> tool_all_services_ttyd
 shell_scripts_rebuild_webservices_sh --> tool_apt_get
 shell_scripts_rebuild_webservices_sh --> tool_caddy
 shell_scripts_rebuild_webservices_sh --> tool_cp
+shell_scripts_rebuild_webservices_sh --> tool_desktop_web
 shell_scripts_rebuild_webservices_sh --> tool_dnf
 shell_scripts_rebuild_webservices_sh --> tool_grep
+shell_scripts_rebuild_webservices_sh --> tool_install_remote_desktop_sh
+shell_scripts_rebuild_webservices_sh --> tool_install_remote_desktop_gateway_sh
 shell_scripts_rebuild_webservices_sh --> tool_mkdir
+shell_scripts_rebuild_webservices_sh --> tool_rdp
+shell_scripts_rebuild_webservices_sh --> tool_remote_desktop_web
+shell_scripts_rebuild_webservices_sh --> tool_render_remote_desktop_gateway_sh
 shell_scripts_rebuild_webservices_sh --> tool_render_webterm_index_sh
 shell_scripts_rebuild_webservices_sh --> tool_systemctl
 shell_scripts_render_configs_sh --> tool_cat
 shell_scripts_render_configs_sh --> tool_mkdir
 shell_scripts_render_configs_sh --> tool_populate_site_hostname
+shell_scripts_render_remote_desktop_gateway_sh --> tool_cat
+shell_scripts_render_remote_desktop_gateway_sh --> tool_chmod
+shell_scripts_render_remote_desktop_gateway_sh --> tool_md5sum
+shell_scripts_render_remote_desktop_gateway_sh --> tool_mkdir
+shell_scripts_render_remote_desktop_gateway_sh --> tool_populate_site_hostname
 shell_scripts_render_webterm_index_sh --> tool_cp
 shell_scripts_render_webterm_index_sh --> tool_mkdir
 shell_scripts_run_tachometer_profile_sh --> tool_run
@@ -104,8 +173,8 @@ shell_scripts_run_tachometer_profile_sh --> tool_tachometer
 shell_scripts_site_registry_sh --> tool_python3
 shell_scripts_ttyd_session_sh --> tool_tmux
 note as shellGraphSummary
-Scanned 17 shell scripts.
-Detected 2 local shell edges.
-Detected 26 external tools.
+Scanned 22 shell scripts.
+Detected 4 local shell edges.
+Detected 47 external tools.
 end note
 @enduml
