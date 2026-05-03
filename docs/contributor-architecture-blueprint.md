@@ -82,6 +82,7 @@ restricts listening to the WireGuard interface.
 ### 5. Firewall Configuration
 
 ```
+scripts/configure_firewall.sh   (auto-detects firewalld or UFW)
 scripts/configure_ufw.sh        (Ubuntu/Debian — UFW)
 scripts/configure_firewalld.sh  (Fedora/RHEL — firewalld)
 scripts/enable_ip_forwarding.sh (enables kernel IP forwarding for lan/full-tunnel modes)

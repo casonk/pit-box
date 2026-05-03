@@ -5,3 +5,12 @@
 [Globals]
 port=tcp://10.8.0.1:3389
 crypt_level=high
+autorun=Xorg
+
+[Xorg]
+name=Xorg
+lib=libxup.so
+username=ask
+password=ask
+port=-1
+code=20

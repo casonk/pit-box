@@ -2,6 +2,8 @@
 set namespaceSeparator none
 top to bottom direction
 skinparam componentStyle rectangle
+rectangle "export_remote_desktop_password_to_keepass\n1 python file" as export_remote_desktop_password_to_keepass
 rectangle "inject_toolbar\n1 python file" as inject_toolbar
 rectangle "pit_box_api\n1 python file" as pit_box_api
+rectangle "resolve_remote_desktop_password\n1 python file" as resolve_remote_desktop_password
 @enduml

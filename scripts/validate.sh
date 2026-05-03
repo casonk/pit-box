@@ -34,6 +34,7 @@ check_file "$ROOT_DIR/scripts/site_registry.sh"
 check_file "$ROOT_DIR/scripts/generate_keys.sh"
 check_file "$ROOT_DIR/scripts/render_configs.sh"
 check_file "$ROOT_DIR/scripts/enable_ip_forwarding.sh"
+check_file "$ROOT_DIR/scripts/configure_firewall.sh"
 check_file "$ROOT_DIR/scripts/configure_ufw.sh"
 check_file "$ROOT_DIR/scripts/configure_firewalld.sh"
 check_file "$ROOT_DIR/scripts/harden_ssh.sh"
@@ -49,6 +50,7 @@ check_file "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"
 check_file "$ROOT_DIR/configs/webterm/home.html"
 check_file "$ROOT_DIR/configs/webterm/index.html"
 check_file "$ROOT_DIR/configs/remote-desktop/xrdp.ini.example"
+check_file "$ROOT_DIR/configs/remote-desktop/startwm-pit-box.sh"
 check_file "$ROOT_DIR/configs/remote-desktop/docker-compose.guacamole.example.yml"
 check_file "$ROOT_DIR/configs/remote-desktop/caddy-guacamole.caddy.example"
 check_file "$ROOT_DIR/config/auto-pass.example.ini"
@@ -78,6 +80,10 @@ if ! grep -q '^REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE=' "$ROOT_DIR/settings
   echo "[invalid] settings.env.example missing REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE" >&2
   errors=$((errors + 1))
 fi
+if ! grep -q '^REMOTE_DESKTOP_SESSION=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_SESSION" >&2
+  errors=$((errors + 1))
+fi
 
 if [[ -f "$ROOT_DIR/scripts/install_remote_desktop.sh" ]]; then
   if ! grep -q 'xrdp' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
@@ -86,6 +92,29 @@ if [[ -f "$ROOT_DIR/scripts/install_remote_desktop.sh" ]]; then
   fi
   if ! grep -q 'wg-quick@${WG_INTERFACE}.service' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
     echo "[invalid] scripts/install_remote_desktop.sh does not order xrdp after WireGuard" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'detect_desktop_session' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
+    echo "[invalid] scripts/install_remote_desktop.sh does not auto-detect an xrdp desktop session" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'startwm-pit-box.sh' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
+    echo "[invalid] scripts/install_remote_desktop.sh does not install the pit-box xrdp session wrapper" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'ensure_xorg_session' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
+    echo "[invalid] scripts/install_remote_desktop.sh does not enable the xorgxrdp backend" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/configure_firewall.sh" ]]; then
+  if ! grep -q 'configure_firewalld.sh' "$ROOT_DIR/scripts/configure_firewall.sh"; then
+    echo "[invalid] scripts/configure_firewall.sh does not route to firewalld" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'configure_ufw.sh' "$ROOT_DIR/scripts/configure_firewall.sh"; then
+    echo "[invalid] scripts/configure_firewall.sh does not route to UFW" >&2
     errors=$((errors + 1))
   fi
 fi
