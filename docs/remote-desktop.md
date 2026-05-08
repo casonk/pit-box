@@ -97,9 +97,12 @@ The RDP entry is `ingress = "direct"`, so it is published to the private DNS
 inventory but is not reverse-proxied through Caddy. The Safari entry is
 best kept as `ingress = "wiring-harness-caddy"` so the shared Caddy generator
 owns `desktop.*` whenever wiring-harness refreshes `/etc/caddy/Caddyfile`.
-If an older local registry still uses `repo-caddy`, `pit-box` can render its own
-Caddy drop-in, but a later wiring-harness provision may replace the main
-Caddyfile and remove the import for repo-owned snippets.
+When wiring-harness owns the hostname, `pit-box` removes any stale
+`/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy` drop-in to avoid a
+duplicate Caddy site definition for the same desktop hostname. If an older local
+registry still uses `repo-caddy`, `pit-box` can render its own Caddy drop-in,
+but a later wiring-harness provision may replace the main Caddyfile and remove
+the import for repo-owned snippets.
 
 If the phone WireGuard profile was rendered before the hostname existed, rerun
 `./scripts/render_configs.sh` and `./scripts/package_client.sh` from `pit-box`,
@@ -131,7 +134,8 @@ restarts xrdp.
 The Safari gateway installer renders Podman Quadlet unit files for `guacd` and
 `guacamole`, installs them to `/etc/containers/systemd/`, enables them as
 systemd services (`pit-box-guacd.service` and `pit-box-guacamole.service`), and
-installs a Caddy mTLS reverse proxy at `https://REMOTE_DESKTOP_WEB_HOSTNAME/`.
+installs a Caddy mTLS reverse proxy at `https://REMOTE_DESKTOP_WEB_HOSTNAME/`
+only when the wiring-harness registry does not already own that Caddy site.
 The containers start automatically at boot via systemd. On SELinux hosts, the
 Guacamole config volume is mounted with a private container label. The config
 directory is owned by the Guacamole container UID/GID, which defaults to

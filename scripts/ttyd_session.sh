@@ -9,10 +9,14 @@ BASE_SESSION="pit-box"
 
 # Ensure the base session exists (no-op if already running).
 tmux new-session -d -s "$BASE_SESSION" 2>/dev/null || true
+# Let xterm touch gestures become tmux wheel events. tmux forwards them to
+# mouse-aware apps and uses copy-mode for normal shell scrollback.
+tmux set-option -t "$BASE_SESSION" mouse on
 
 # Create a unique grouped session sharing the window set of the base session.
 SESS="pb-$$"
 tmux new-session -d -t "$BASE_SESSION" -s "$SESS"
+tmux set-option -t "$SESS" mouse on
 
 # Attach. When the WebSocket disconnects, remember the last active window so a
 # fresh grouped session inherits it on the next connect.
