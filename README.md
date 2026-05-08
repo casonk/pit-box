@@ -217,7 +217,7 @@ client config on your iPhone — the `DNS` field is updated to point at the serv
 hostname registered as `pit-box-webterm` in `../wiring-harness/services.local.toml` resolves
 over the tunnel. The install step also deploys the home page and
 regenerates the terminal page so mobile browsers get tmux controls, arrows, `Tab`, `Esc`,
-`Ctrl+C`, font scaling, and buffer scroll helpers.
+`Ctrl+C`, font scaling, xterm scrollback helpers, and clipboard controls.
 
 Point a browser (over VPN) at the hostname registered as `pit-box-webterm` in the sibling
 `wiring-harness` site registry — for example `https://webterm.home/` — and log in with your
@@ -306,14 +306,39 @@ The expectation here is:
 
 - **ttyd** serves an xterm.js terminal behind Caddy at `https://WEBTERM_HOSTNAME/`
 - `/` shows the home page with tmux windows and currently connected browser terminals
-- `/term` opens the terminal page with mobile helper buttons, font scaling, and buffer scroll
-  controls
+- `/term` opens the terminal page with mobile helper buttons, font scaling, and xterm
+  scrollback controls
+- Caddy serves the generated terminal page at `/term` and rewrites ttyd's `/term/token` and
+  `/term/ws` browser requests back to ttyd's root `/token` and `/ws` endpoints
 - The service binds exclusively to the WireGuard tunnel IP — never to the public interface
 - It invokes `/bin/login`, so you authenticate with your local Unix username and password
 - WebSocket keepalives (`--ping-interval 30`) prevent the browser session from going idle
 - Only accessible from devices connected to the WireGuard VPN
-- The generated terminal page includes mobile helper keys for tmux window control, arrows, `Tab`,
-  `Esc`, `Ctrl+C`, `Ctrl+D`, `Ctrl+L`, plus direct buffer scroll buttons and persistent font scaling
+- The generated terminal page groups mobile helper keys into three bottom toolbar rows: tmux
+  window controls plus a guarded `-kill` current-terminal button; `Tab`, `Esc`, and Ctrl keys;
+  then `PgUp`, `PgDn`, `Bottom`, and arrows
+- `sel`, `copy`, and `paste` provide mobile clipboard support: selection opens a native text
+  panel that fills the screen and is backed by terminal scrollback or visible terminal DOM text;
+  copy uses browser clipboard with a textarea fallback, and paste falls back to the same native
+  panel with a `send` button when clipboard reads are blocked
+- The `-kill` button changes color on the first tap and only detaches the current browser
+  terminal after a second tap, leaving the shared tmux windows intact
+- The terminal surface has an explicit one-finger touch scroller, and the page navigation buttons
+  use touch/pointer activation plus tmux copy-mode commands. Touch scrolling handles both
+  `touch*` and pointer events, uses coordinate-based terminal hit testing when mobile browsers
+  retarget canvas events, and prefers native xterm-to-tmux mouse scrolling. tmux mouse handling
+  forwards wheel/touch scroll to apps such as Codex when they request mouse input, and otherwise
+  enters tmux copy-mode for shell scrollback. The loopback WebTerm API backs the explicit
+  browser gesture path: it sends Ctrl-Up/Ctrl-Down only to Codex-like foreground apps, and uses
+  tmux copy-mode for normal shells so finger scrolling does not send literal `[` input or move
+  shell command history
+- Mobile keyboard layout uses `visualViewport` to raise the terminal stage and bottom toolbar
+  above the on-screen keyboard, then refits xterm so the current prompt remains visible while
+  typing
+- Landscape phone layout compacts the bottom toolbar into a short horizontal scroller so the
+  terminal retains usable height after rotation
+- The font controls default xterm to `17pt` and update xterm's `fontSize` option directly instead
+  of CSS-scaling the terminal canvas, then dispatch resize events so xterm refits to the viewport
 - A reconnect inherits the last tmux window selected by the disconnected browser terminal instead of
   always falling back to window `0`
 - The home page polls the loopback pit-box API so it can show both tmux windows and live browser
@@ -343,6 +368,9 @@ The expectation here is:
   `wg-quick@WG_INTERFACE.service`.
 - The Safari gateway binds Guacamole to loopback and exposes it through the
   same Caddy/mTLS pattern used by other private pit-box browser surfaces.
+- When the `pit-box-remote-desktop` registry entry uses
+  `ingress = "wiring-harness-caddy"`, wiring-harness owns the Caddy site and
+  pit-box removes any stale repo drop-in for that desktop hostname.
 - Firewall scripts allow the RDP port only on the WireGuard interface when
   `REMOTE_DESKTOP_ENABLED=true`.
 - The optional `pit-box-rdp` hostname belongs in the sibling `wiring-harness`

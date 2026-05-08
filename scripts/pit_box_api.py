@@ -6,6 +6,7 @@ Runs on loopback only; Caddy proxies /api/* from the mTLS VPN endpoint.
 Endpoints:
   GET    /api/state          - combined tmux windows + live browser terminals
   GET    /api/windows        - list tmux windows
+  POST   /api/terminals/scroll - scroll attached WebTerm tmux copy-mode panes
   DELETE /api/windows/<n>    - kill tmux window N
 """
 import argparse
@@ -92,6 +93,63 @@ def kill_window(index: int) -> bool:
     return r.returncode == 0
 
 
+def pane_state(session_name: str) -> dict:
+    target = f"{session_name}:"
+    result = tmux(
+        "display-message", "-p", "-t", target,
+        "#{pane_current_command}\t#{pane_in_mode}",
+    )
+    if result.returncode != 0:
+        return {"command": "", "in_mode": False}
+    command, in_mode = (result.stdout.rstrip("\n").split("\t", 1) + ["0"])[:2]
+    return {
+        "command": command,
+        "in_mode": in_mode == "1",
+    }
+
+
+def attached_terminal_names() -> list[str]:
+    names = [item["name"] for item in list_terminals()]
+    return names or [SESSION]
+
+
+def scroll_foreground_app(session_name: str, direction: str, count: int) -> bool:
+    target = f"{session_name}:"
+    key = "C-Up" if direction == "up" else "C-Down"
+    ok = True
+    for _ in range(count):
+        ok = tmux("send-keys", "-t", target, key).returncode == 0 and ok
+    return ok
+
+
+def scroll_terminal(session_name: str, direction: str, count: int, first: bool) -> bool:
+    target = f"{session_name}:"
+    state = pane_state(session_name)
+    if state["command"] in {"codex", "node"} and not state["in_mode"]:
+        return scroll_foreground_app(session_name, direction, count)
+
+    ok = True
+    if first or not state["in_mode"]:
+        # Enter copy-mode without sending any key sequence to the foreground app.
+        ok = tmux("copy-mode", "-t", target).returncode == 0
+    command = "scroll-up" if direction == "up" else "scroll-down"
+    if count > 0:
+        ok = tmux("send-keys", "-t", target, "-X", "-N", str(count), command).returncode == 0 and ok
+    return ok
+
+
+def scroll_terminals(direction: str, count: int, first: bool) -> dict:
+    count = max(1, min(80, count))
+    names = attached_terminal_names()
+    results = []
+    for name in names:
+        results.append({"name": name, "ok": scroll_terminal(name, direction, count, first)})
+    return {
+        "ok": all(item["ok"] for item in results),
+        "terminals": results,
+    }
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *_):
         pass
@@ -112,6 +170,38 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(200, list_windows())
         else:
             self._send(404, {"error": "not found"})
+
+    def _read_json(self):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            return None
+        if length <= 0 or length > 4096:
+            return None
+        try:
+            return json.loads(self.rfile.read(length).decode())
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return None
+
+    def do_POST(self):
+        if self.path == "/api/terminals/scroll":
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                self._send(400, {"error": "invalid json body"})
+                return
+            direction = str(payload.get("direction", "up"))
+            if direction not in {"up", "down"}:
+                self._send(400, {"error": "invalid direction"})
+                return
+            try:
+                count = int(payload.get("count", 1))
+            except (TypeError, ValueError):
+                self._send(400, {"error": "invalid count"})
+                return
+            result = scroll_terminals(direction, count, bool(payload.get("first", False)))
+            self._send(200 if result["ok"] else 500, result)
+            return
+        self._send(404, {"error": "not found"})
 
     def do_DELETE(self):
         if self.path.startswith("/api/windows/"):

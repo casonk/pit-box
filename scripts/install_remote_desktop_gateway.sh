@@ -105,6 +105,14 @@ fi
 
 if [[ "$REMOTE_DESKTOP_WEB_INGRESS" == "wiring-harness-caddy" ]]; then
   echo "Shared wiring-harness Caddy owns ${REMOTE_DESKTOP_WEB_HOSTNAME:-desktop route}; skipping repo Caddy drop-in."
+  if [[ -f "$CADDY_TARGET" ]]; then
+    rm -f "$CADDY_TARGET"
+    echo "Removed stale repo Caddy drop-in: $CADDY_TARGET"
+    if [[ -f "$CADDYFILE" ]]; then
+      caddy validate --config "$CADDYFILE"
+      systemctl reload caddy
+    fi
+  fi
   echo "Run from ../wiring-harness: sudo python3 scripts/setup_caddy.py --provision"
 else
   mkdir -p /etc/caddy/Caddyfile.d

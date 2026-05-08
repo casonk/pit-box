@@ -4,6 +4,7 @@
 # Routing:
 #   /        — home page (home.html) served from /etc/pit-box/webterm
 #   /term    — terminal page (index.html) served from /etc/pit-box/webterm
+#   /term/*  — ttyd token/WebSocket endpoints rewritten back to ttyd's root
 #   /api/*   — window management API (pit-box-api service)
 #   *        — reverse-proxied to ttyd (WebSocket /ws, assets, auth token)
 
@@ -17,11 +18,22 @@ https://WEBTERM_HOSTNAME {
 
 	encode zstd gzip
 
+	@term_ttyd path /term/token /term/ws
+	handle @term_ttyd {
+		uri strip_prefix /term
+		reverse_proxy 127.0.0.1:WEBTERM_PORT
+	}
+
 	@home path /
 	handle @home {
 		root * /etc/pit-box/webterm
 		rewrite * /home.html
 		file_server
+	}
+
+	@term_slash path /term/
+	handle @term_slash {
+		redir * /term 308
 	}
 
 	@term path /term
