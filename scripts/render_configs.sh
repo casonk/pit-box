@@ -186,11 +186,22 @@ https://${WEBTERM_HOSTNAME} {
 
 	encode zstd gzip
 
+	@term_ttyd path /term/token /term/ws
+	handle @term_ttyd {
+		uri strip_prefix /term
+		reverse_proxy 127.0.0.1:${WEBTERM_PORT}
+	}
+
 	@home path /
 	handle @home {
 		root * /etc/pit-box/webterm
 		rewrite * /home.html
 		file_server
+	}
+
+	@term_slash path /term/
+	handle @term_slash {
+		redir * /term 308
 	}
 
 	@term path /term

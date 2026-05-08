@@ -10,6 +10,10 @@ SETTINGS_FILE="$ROOT_DIR/settings.env"
 [[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings.env" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
+# shellcheck source=/dev/null
+source "$ROOT_DIR/scripts/site_registry.sh"
+
+WEBTERM_API_PORT="${WEBTERM_API_PORT:-$((WEBTERM_PORT + 1))}"
 
 ALL_SERVICES=()
 [[ "${WEBTERM_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(ttyd api dns caddy)
@@ -42,6 +46,25 @@ ensure_package() {
   fi
 }
 
+check_api_post_handler() {
+  local remaining=20
+  local status
+  command -v curl >/dev/null 2>&1 || return 0
+  while (( remaining > 0 )); do
+    status="$(
+      curl -sS -o /dev/null -w '%{http_code}' \
+        -X POST "http://127.0.0.1:${WEBTERM_API_PORT}/api/terminals/scroll" || true
+    )"
+    if [[ "$status" != "501" && "$status" != "000" ]]; then
+      return 0
+    fi
+    remaining=$((remaining - 1))
+    sleep 0.25
+  done
+  echo "pit-box-api did not load the terminal scroll POST handler (HTTP $status)" >&2
+  return 1
+}
+
 rebuild_ttyd() {
   local svc="$ROOT_DIR/build/webterm/ttyd.service"
   local api_svc="$ROOT_DIR/build/webterm/pit-box-api.service"
@@ -58,10 +81,13 @@ rebuild_ttyd() {
   cp "$svc" /etc/systemd/system/ttyd.service
   cp "$api_svc" /etc/systemd/system/pit-box-api.service
   systemctl daemon-reload
-  systemctl enable --now ttyd
   systemctl enable --now pit-box-api
-  systemctl restart ttyd
   systemctl restart pit-box-api
+  check_api_post_handler
+  systemctl enable --now ttyd
+  # Keep ttyd last. This script is often run from inside WebTerm, and restarting
+  # ttyd kills the current browser terminal before later commands can run.
+  systemctl restart ttyd
   echo "[ok] ttyd rebuilt (home/API refreshed too)"
 }
 
@@ -73,6 +99,7 @@ rebuild_api() {
   systemctl daemon-reload
   systemctl enable --now pit-box-api
   systemctl restart pit-box-api
+  check_api_post_handler
   echo "[ok] pit-box-api rebuilt"
 }
 
@@ -82,11 +109,25 @@ rebuild_caddy() {
   [[ -f "$src" ]] || { echo "Missing $src — run render_configs.sh first" >&2; return 1; }
   mkdir -p /etc/caddy/Caddyfile.d
   cp "$src" /etc/caddy/Caddyfile.d/pit-box-webterm.caddy
+  cleanup_wiring_harness_owned_caddy_dropins
   grep -q 'import Caddyfile.d' "$caddyfile" || \
     printf '\nimport Caddyfile.d/*.caddy\n' >> "$caddyfile"
   caddy validate --config "$caddyfile"
   systemctl reload caddy
   echo "[ok] caddy rebuilt"
+}
+
+cleanup_wiring_harness_owned_caddy_dropins() {
+  local desktop_ingress=""
+  local desktop_dropin="/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy"
+
+  desktop_ingress="$(
+    resolve_registry_field "$ROOT_DIR" "pit-box-remote-desktop" ingress 2>/dev/null || true
+  )"
+  if [[ "$desktop_ingress" == "wiring-harness-caddy" && -f "$desktop_dropin" ]]; then
+    rm -f "$desktop_dropin"
+    echo "[ok] removed stale $desktop_dropin; wiring-harness owns pit-box-remote-desktop"
+  fi
 }
 
 rebuild_dns() {
@@ -116,20 +157,18 @@ rebuild_desktop_web() {
   echo "[ok] desktop-web rebuilt"
 }
 
-errors=0
 for svc in "${SERVICES[@]}"; do
   case "$svc" in
-    ttyd)    rebuild_ttyd    || { echo "[fail] ttyd";    errors=$((errors + 1)); } ;;
-    api)     rebuild_api     || { echo "[fail] api";     errors=$((errors + 1)); } ;;
-    dns)     rebuild_dns     || { echo "[fail] dns";     errors=$((errors + 1)); } ;;
-    caddy)   rebuild_caddy   || { echo "[fail] caddy";   errors=$((errors + 1)); } ;;
-    cockpit) rebuild_cockpit || { echo "[fail] cockpit"; errors=$((errors + 1)); } ;;
-    rdp|remote-desktop) rebuild_rdp || { echo "[fail] rdp"; errors=$((errors + 1)); } ;;
-    desktop-web|remote-desktop-web|guacamole) rebuild_desktop_web || { echo "[fail] desktop-web"; errors=$((errors + 1)); } ;;
+    ttyd)    rebuild_ttyd ;;
+    api)     rebuild_api ;;
+    dns)     rebuild_dns ;;
+    caddy)   rebuild_caddy ;;
+    cockpit) rebuild_cockpit ;;
+    rdp|remote-desktop) rebuild_rdp ;;
+    desktop-web|remote-desktop-web|guacamole) rebuild_desktop_web ;;
     *)
       echo "Unknown service: '$svc'  (valid: ttyd api dns caddy cockpit rdp desktop-web)" >&2
       exit 1
       ;;
   esac
 done
-[[ $errors -eq 0 ]] || exit 1

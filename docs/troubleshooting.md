@@ -45,13 +45,75 @@ Check:
 3. the `AllowedIPs` line matches the desired routing mode
 4. line endings were not mangled during transfer
 
+## Web terminal is a blank white page
+
+Check:
+
+1. `curl -sS http://127.0.0.1:7681/token` returns JSON from ttyd.
+2. `/etc/caddy/Caddyfile.d/pit-box-webterm.caddy` routes `/term/token` and `/term/ws` through `uri strip_prefix /term` before proxying to ttyd.
+3. rerun `./scripts/render_configs.sh` and `sudo ./scripts/rebuild_webservices.sh caddy` to redeploy the Caddy route.
+4. hard-refresh the browser after Caddy reloads so the old failed terminal page is not cached.
+
 ## Web terminal loads but helper keys are missing
 
 Check:
 
-1. `systemctl cat ttyd` includes `--index /etc/pit-box/webterm/index.html`
+1. `/etc/pit-box/webterm/index.html` exists and contains `pb-toolbar`
 2. rerun `sudo ./scripts/rebuild_webservices.sh ttyd` to redeploy the terminal page and refresh the coupled home-page API
 3. hard-refresh the browser after the ttyd restart so the old page is not cached
+
+## Web terminal zoom buttons clip the terminal
+
+Check:
+
+1. `/etc/pit-box/webterm/index.html` contains `termRef.options.fontSize`.
+2. tap `1:1`, then `A+`; the top label should move from `17pt` to `18pt`.
+3. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old transform-based zoom active.
+
+## Web terminal page navigation buttons do not scroll
+
+Check:
+
+1. `/etc/pit-box/webterm/index.html` contains `KEY_PAGE_UP`, `KEY_PAGE_DOWN`, `KEY_CTRL_UP`, and `KEY_CTRL_DOWN`, and does not contain `sendTmux('[')`.
+2. `/etc/pit-box/ttyd_session.sh` contains `tmux set-option -t "$BASE_SESSION" mouse on` and `tmux set-option -t "$SESS" mouse on`.
+3. `/etc/pit-box/webterm/index.html` contains `installTerminalTouchScroll`, `beginTerminalTouchScroll`, `isXtermMouseEventsActive`, `isPointInStage`, `pointermove`, `scrollTerminalsViaApi`, `scrollToTerminalLine`, `pointerup`, `data-page="bottom"`, and no `data-scroll` controls.
+4. `/etc/pit-box/pit_box_api.py` contains `/api/terminals/scroll`, `pane_current_command`, `C-Up`, `copy-mode`, `send-keys`, and `-X` support; an empty `curl -X POST http://127.0.0.1:7682/api/terminals/scroll` should return HTTP 400, not 501 or 000.
+5. drag one finger vertically in either direction in the terminal body; inside Codex the gesture should scroll Codex through Ctrl-Up/Ctrl-Down, and at a shell prompt it should enter tmux copy-mode without moving command history or typing `[` at the prompt.
+6. if you are running the rebuild from inside WebTerm, `ttyd` will kill that browser terminal near the end of `sudo ./scripts/rebuild_webservices.sh ttyd`; that is expected after the API restart and health check have already run.
+7. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript or a stale `pit-box-api` service can leave the old direct-key scrolling active.
+
+## Web terminal toolbar fills the screen in landscape
+
+Check:
+
+1. `/etc/pit-box/webterm/index.html` contains `@media (orientation: landscape)` and `--pb-toolbar-h: 74px`.
+2. rotate the phone to landscape; the bottom toolbar should become a compact horizontal scroller instead of three tall rows.
+3. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale CSS can leave the old portrait toolbar active.
+
+## Web terminal keyboard covers the current prompt
+
+Check:
+
+1. `/etc/pit-box/webterm/index.html` contains `--pb-keyboard-offset`, `visualViewport`, and `installKeyboardInsetHandler`.
+2. tap the terminal so the phone keyboard opens; the bottom toolbar and terminal stage should move above the keyboard and the terminal should refit.
+3. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old fixed-bottom layout active.
+
+## Web terminal kill button does not close the current terminal
+
+Check:
+
+1. `/etc/pit-box/webterm/index.html` contains `data-kill="-terminal"` and `pb-confirm`.
+2. tap `-kill` once and confirm it changes color; tap it a second time before the color resets.
+3. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old toolbar active.
+
+## Web terminal select, copy, or paste does not work
+
+Check:
+
+1. `/etc/pit-box/webterm/index.html` contains `pb-clip-panel`, `inset: 0`, `collectBufferText`, `collectDomText`, and `data-clip-send`.
+2. tap `sel`; a full-screen native text panel should open with terminal scrollback selected for mobile copy handles.
+3. tap `paste`; if the browser blocks clipboard read access, paste into the native text panel and tap `send`.
+4. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old select-only toolbar active.
 
 ## Home page does not show live terminals
 
@@ -89,9 +151,21 @@ Check:
 3. `sudo systemctl status pit-box-guacamole.service pit-box-guacd.service` are healthy.
 4. `sudo podman ps` shows the `pit-box-guacamole` and `pit-box-guacd` containers.
 5. `sudo ss -ltnp | grep ':8090'` shows Guacamole bound on loopback.
-6. `/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy` exists and `sudo systemctl status caddy` is healthy.
+6. Caddy has exactly one `desktop.*` site definition: either the shared wiring-harness block in `/etc/caddy/Caddyfile`, or the pit-box drop-in at `/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy`, not both.
 7. `./scripts/render_remote_desktop_gateway.sh` reports `Credential source: auto-pass:...`.
 8. the iPhone has the current wiring-harness mTLS profile installed.
+
+If `sudo ./scripts/rebuild_webservices.sh caddy` reports `ambiguous site
+definition` for the desktop hostname, remove the stale pit-box drop-in by
+rerunning:
+
+```bash
+sudo ./scripts/rebuild_webservices.sh caddy
+```
+
+The rebuild script removes `/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy`
+when the `pit-box-remote-desktop` registry entry uses
+`ingress = "wiring-harness-caddy"`.
 
 If the Guacamole container keeps restarting or nothing is listening on
 `127.0.0.1:8090`, check the container state and logs:
