@@ -5,16 +5,21 @@ terminal controls, and saves the result to TARGET.
 
 The generated page keeps ttyd's own HTML/CSS/JS but adds:
   - a top bar with Home + font scaling
-  - a bottom helper bar for tmux actions, control keys, and guarded detach
+  - a bottom helper bar for tmux actions, control keys, and guarded window kill
   - xterm scrollback helpers for page navigation
   - URL-driven tmux actions on connect (?window=N / ?action=new)
 """
 import argparse
+import re
 import time
 import urllib.request
 
 DEFAULT_PORT = 7699
 DEFAULT_TARGET = "/etc/pit-box/webterm/index.html"
+VIEWPORT_META = (
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, '
+    'viewport-fit=cover, maximum-scale=1.0, user-scalable=no">'
+)
 
 INJECTED_CSS = """\
 <style>
@@ -180,7 +185,9 @@ body.pb-sel-mode .xterm canvas {
   color: #c9d1d9;
   border: 1px solid #30363d;
   border-radius: 10px;
-  font: 18px/1.35 ui-monospace, monospace;
+  font-family: ui-monospace, monospace;
+  font-size: 18px;
+  line-height: 1.35;
   user-select: text;
   -webkit-user-select: text;
   touch-action: auto;
@@ -265,7 +272,7 @@ INJECTED_HTML = """\
     <button class="pb-btn" data-tmux="w">list</button>
     <div class="pb-sep"></div>
     <a class="pb-btn" href="/">home</a>
-    <button class="pb-btn" data-kill="-terminal">-kill</button>
+    <button class="pb-btn" data-kill="-window">-win</button>
     <div class="pb-sep"></div>
     <button class="pb-btn pb-sel-btn" id="pb-sel-btn" data-sel-mode>sel</button>
     <button class="pb-btn" data-copy-sel>copy</button>
@@ -800,6 +807,23 @@ WS_INTERCEPTOR = """\
     setTimeout(function () { send(command); }, 80);
   }
 
+  function focusTerminal() {
+    if (!termRef || typeof termRef.focus !== 'function') { return; }
+    try { termRef.focus(); } catch (e) {}
+  }
+
+  function scheduleTerminalFocus() {
+    focusTerminal();
+    window.requestAnimationFrame(focusTerminal);
+    window.setTimeout(focusTerminal, 80);
+  }
+
+  function killCurrentTmuxWindow() {
+    // The prefix+& binding targets the window visible in this exact tmux client.
+    sendTmux('&');
+    window.setTimeout(function () { send('y'); }, 220);
+  }
+
   function startTmuxCopyModeForTouch() {
     tmuxCopyModeLikely = true;
     sendTmux(KEY_PAGE_UP);
@@ -848,8 +872,7 @@ WS_INTERCEPTOR = """\
   function confirmKillTerminal(button) {
     if (button.classList.contains('pb-confirm')) {
       resetKillConfirm();
-      sendTmux('d');
-      setTimeout(function () { window.location.href = '/'; }, 300);
+      killCurrentTmuxWindow();
       return;
     }
     resetKillConfirm();
@@ -936,11 +959,11 @@ WS_INTERCEPTOR = """\
     document.body.classList.toggle('pb-sel-mode', selectMode);
     setSelectButton(selectMode);
     window.requestAnimationFrame(function () {
-      try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
       if (selectMode) {
-        try { area.setSelectionRange(0, area.value.length); } catch (e) {}
-        area.select();
+        area.scrollTop = 0;
+        return;
       }
+      try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
     });
   }
 
@@ -991,11 +1014,6 @@ WS_INTERCEPTOR = """\
 
   function fallbackCopyText(text) {
     openClipPanel('select', text);
-    var area = getClipTextArea();
-    if (!area) { return; }
-    area.focus();
-    area.select();
-    try { document.execCommand('copy'); } catch (e) {}
   }
 
   function copyText(text) {
@@ -1032,6 +1050,7 @@ WS_INTERCEPTOR = """\
     navigator.clipboard.readText().then(function (text) {
       if (text) {
         send(text);
+        scheduleTerminalFocus();
       } else {
         openPastePanel();
       }
@@ -1043,6 +1062,7 @@ WS_INTERCEPTOR = """\
     if (!area || !area.value) { return; }
     send(area.value);
     closeClipPanel();
+    scheduleTerminalFocus();
   }
 
   function handleControlClick(button) {
@@ -1086,6 +1106,7 @@ WS_INTERCEPTOR = """\
     var clipClose = button.getAttribute('data-clip-close');
     if (clipClose !== null) {
       closeClipPanel();
+      scheduleTerminalFocus();
       return;
     }
 
@@ -1162,6 +1183,22 @@ WS_INTERCEPTOR = """\
     return button && button.getAttribute('data-paste') !== null;
   }
 
+  function isClipboardPanelControl(button) {
+    return button && button.closest('#pb-clip-panel') !== null;
+  }
+
+  function shouldPreserveTerminalFocus(button) {
+    if (!button || isClipboardPanelControl(button) || isPasteControl(button)) { return false; }
+    return button.getAttribute('data-sel-mode') === null;
+  }
+
+  document.addEventListener('pointerdown', function (event) {
+    var button = event.target.closest(CONTROL_SELECTOR);
+    if (!shouldPreserveTerminalFocus(button)) { return; }
+    // Prevent toolbar buttons from taking focus away from xterm's hidden input.
+    event.preventDefault();
+  }, { passive: false, capture: true });
+
   document.addEventListener('pointerup', function (event) {
     if (event.pointerType === 'mouse') { return; }
     var button = event.target.closest(CONTROL_SELECTOR);
@@ -1169,6 +1206,7 @@ WS_INTERCEPTOR = """\
     if (!button || isPasteControl(button)) { return; }
     lastPointerControlAt = Date.now();
     activateControl(event);
+    if (shouldPreserveTerminalFocus(button)) { scheduleTerminalFocus(); }
   }, true);
 
   document.addEventListener('click', function (event) {
@@ -1180,6 +1218,7 @@ WS_INTERCEPTOR = """\
       return;
     }
     activateControl(event);
+    if (shouldPreserveTerminalFocus(button)) { scheduleTerminalFocus(); }
   });
 
   installTerminalTouchScroll();
@@ -1234,11 +1273,17 @@ def inject(html: str) -> str:
         raise RuntimeError(f"Expected marker not found: {MARKER!r}")
     injected = INJECTED_CSS + INJECTED_HTML + WS_INTERCEPTOR
     html = html.replace(MARKER, injected + MARKER, 1)
-    return html.replace(
-        'name="viewport" content="',
-        'name="viewport" content="viewport-fit=cover, ',
-        1,
-    )
+    if re.search(r'<meta\s+name=["\']viewport["\'][^>]*>', html, re.IGNORECASE):
+        return re.sub(
+            r'<meta\s+name=["\']viewport["\'][^>]*>',
+            VIEWPORT_META,
+            html,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    if "<head>" not in html:
+        raise RuntimeError("Expected <head> marker for viewport metadata")
+    return html.replace("<head>", f"<head>{VIEWPORT_META}", 1)
 
 
 def main() -> None:

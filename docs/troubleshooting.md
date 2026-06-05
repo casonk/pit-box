@@ -90,28 +90,30 @@ Check:
 2. rotate the phone to landscape; the bottom toolbar should become a compact horizontal scroller instead of three tall rows.
 3. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale CSS can leave the old portrait toolbar active.
 
-## Web terminal keyboard covers the current prompt
+## Web terminal keyboard covers the prompt or closes after a toolbar tap
 
 Check:
 
-1. `/etc/pit-box/webterm/index.html` contains `--pb-keyboard-offset`, `visualViewport`, and `installKeyboardInsetHandler`.
+1. `/etc/pit-box/webterm/index.html` contains `--pb-keyboard-offset`, `visualViewport`, `installKeyboardInsetHandler`, `shouldPreserveTerminalFocus`, and `scheduleTerminalFocus`.
 2. tap the terminal so the phone keyboard opens; the bottom toolbar and terminal stage should move above the keyboard and the terminal should refit.
-3. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old fixed-bottom layout active.
+3. tap ordinary controls such as `next`, an arrow, or `Ctrl+C`; the terminal should retain focus and the keyboard should remain open.
+4. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old fixed-bottom or focus-stealing toolbar active.
 
-## Web terminal kill button does not close the current terminal
+## Web terminal window kill targets the wrong window
 
 Check:
 
-1. `/etc/pit-box/webterm/index.html` contains `data-kill="-terminal"` and `pb-confirm`.
-2. tap `-kill` once and confirm it changes color; tap it a second time before the color resets.
-3. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old toolbar active.
+1. `/etc/pit-box/webterm/index.html` contains `data-kill="-window"`, `killCurrentTmuxWindow`, and `pb-confirm`.
+2. switch to the intended tmux window, tap `-win` once and confirm it changes color, then tap it a second time before the color resets.
+3. the second tap should use tmux `prefix+&` plus confirmation against the window visible in that browser client; it should not detach the browser client.
+4. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old toolbar active.
 
 ## Web terminal select, copy, or paste does not work
 
 Check:
 
-1. `/etc/pit-box/webterm/index.html` contains `pb-clip-panel`, `pb-clip-title`, `inset: 0`, `collectBufferText`, `collectDomText`, `isPasteControl`, and `data-clip-send`.
-2. tap `sel`; a full-screen native text panel should open with terminal scrollback selected for mobile copy handles.
+1. `/etc/pit-box/webterm/index.html` contains `pb-clip-panel`, `pb-clip-title`, `inset: 0`, `font-size: 18px`, `maximum-scale=1.0`, `collectBufferText`, `collectDomText`, `isPasteControl`, and `data-clip-send`.
+2. tap `sel`; a full-screen native text panel should open at the normal page scale without automatically focusing or selecting the entire textarea.
 3. tap `paste`; the browser should paste directly when it grants clipboard access. If it blocks the read, a panel titled `Paste into terminal` should open with only `send` and `close` actions.
 4. use the browser's native paste action in that fallback panel, then tap `send`.
 5. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old shared select/paste panel active.
