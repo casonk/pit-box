@@ -168,7 +168,9 @@
       color: #c9d1d9;
       border: 1px solid #30363d;
       border-radius: 10px;
-      font: 18px/1.35 ui-monospace, monospace;
+      font-family: ui-monospace, monospace;
+      font-size: 18px;
+      line-height: 1.35;
       user-select: text;
       -webkit-user-select: text;
       touch-action: auto;
@@ -257,7 +259,7 @@
       <button class="pb-btn" data-tmux="w">list</button>
       <div class="pb-sep"></div>
       <a class="pb-btn" href="/">home</a>
-      <button class="pb-btn" data-kill="-terminal">-kill</button>
+      <button class="pb-btn" data-kill="-window">-win</button>
       <div class="pb-sep"></div>
       <button class="pb-btn pb-sel-btn" id="pb-sel-btn" data-sel-mode>sel</button>
       <button class="pb-btn" data-copy-sel>copy</button>
@@ -785,6 +787,23 @@
         setTimeout(function () { send(command); }, 80);
       }
 
+      function focusTerminal() {
+        if (!termRef || typeof termRef.focus !== 'function') { return; }
+        try { termRef.focus(); } catch (e) {}
+      }
+
+      function scheduleTerminalFocus() {
+        focusTerminal();
+        window.requestAnimationFrame(focusTerminal);
+        window.setTimeout(focusTerminal, 80);
+      }
+
+      function killCurrentTmuxWindow() {
+        // The prefix+& binding targets the window visible in this exact tmux client.
+        sendTmux('&');
+        window.setTimeout(function () { send('y'); }, 220);
+      }
+
       function startTmuxCopyModeForTouch() {
         tmuxCopyModeLikely = true;
         sendTmux(KEY_PAGE_UP);
@@ -833,8 +852,7 @@
       function confirmKillTerminal(button) {
         if (button.classList.contains('pb-confirm')) {
           resetKillConfirm();
-          sendTmux('d');
-          setTimeout(function () { window.location.href = '/'; }, 300);
+          killCurrentTmuxWindow();
           return;
         }
         resetKillConfirm();
@@ -921,11 +939,11 @@
         document.body.classList.toggle('pb-sel-mode', selectMode);
         setSelectButton(selectMode);
         window.requestAnimationFrame(function () {
-          try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
           if (selectMode) {
-            try { area.setSelectionRange(0, area.value.length); } catch (e) {}
-            area.select();
+            area.scrollTop = 0;
+            return;
           }
+          try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
         });
       }
 
@@ -976,11 +994,6 @@
 
       function fallbackCopyText(text) {
         openClipPanel('select', text);
-        var area = getClipTextArea();
-        if (!area) { return; }
-        area.focus();
-        area.select();
-        try { document.execCommand('copy'); } catch (e) {}
       }
 
       function copyText(text) {
@@ -1017,6 +1030,7 @@
         navigator.clipboard.readText().then(function (text) {
           if (text) {
             send(text);
+            scheduleTerminalFocus();
           } else {
             openPastePanel();
           }
@@ -1028,6 +1042,7 @@
         if (!area || !area.value) { return; }
         send(area.value);
         closeClipPanel();
+        scheduleTerminalFocus();
       }
 
       function handleControlClick(button) {
@@ -1071,6 +1086,7 @@
         var clipClose = button.getAttribute('data-clip-close');
         if (clipClose !== null) {
           closeClipPanel();
+          scheduleTerminalFocus();
           return;
         }
 
@@ -1147,6 +1163,22 @@
         return button && button.getAttribute('data-paste') !== null;
       }
 
+      function isClipboardPanelControl(button) {
+        return button && button.closest('#pb-clip-panel') !== null;
+      }
+
+      function shouldPreserveTerminalFocus(button) {
+        if (!button || isClipboardPanelControl(button) || isPasteControl(button)) { return false; }
+        return button.getAttribute('data-sel-mode') === null;
+      }
+
+      document.addEventListener('pointerdown', function (event) {
+        var button = event.target.closest(CONTROL_SELECTOR);
+        if (!shouldPreserveTerminalFocus(button)) { return; }
+        // Prevent toolbar buttons from taking focus away from xterm's hidden input.
+        event.preventDefault();
+      }, { passive: false, capture: true });
+
       document.addEventListener('pointerup', function (event) {
         if (event.pointerType === 'mouse') { return; }
         var button = event.target.closest(CONTROL_SELECTOR);
@@ -1154,6 +1186,7 @@
         if (!button || isPasteControl(button)) { return; }
         lastPointerControlAt = Date.now();
         activateControl(event);
+        if (shouldPreserveTerminalFocus(button)) { scheduleTerminalFocus(); }
       }, true);
 
       document.addEventListener('click', function (event) {
@@ -1165,6 +1198,7 @@
           return;
         }
         activateControl(event);
+        if (shouldPreserveTerminalFocus(button)) { scheduleTerminalFocus(); }
       });
 
       installTerminalTouchScroll();

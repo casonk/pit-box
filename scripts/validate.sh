@@ -332,16 +332,20 @@ if [[ -f "$ROOT_DIR/scripts/inject_toolbar.py" ]]; then
     echo "[invalid] scripts/inject_toolbar.py does not place Bottom in the page navigation row" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q 'data-kill="-terminal"' "$ROOT_DIR/scripts/inject_toolbar.py"; then
-    echo "[invalid] scripts/inject_toolbar.py does not include the guarded current-terminal kill button" >&2
+  if ! grep -q 'data-kill="-window"' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not include the guarded current-window kill button" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q 'pb-confirm' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not visibly confirm the kill button before executing" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q "sendTmux('d')" "$ROOT_DIR/scripts/inject_toolbar.py"; then
-    echo "[invalid] scripts/inject_toolbar.py does not detach the current tmux terminal on confirmed kill" >&2
+  if ! grep -q 'killCurrentTmuxWindow' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -Fq "sendTmux('&')" "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not kill the tmux window visible in the current browser client" >&2
+    errors=$((errors + 1))
+  fi
+  if grep -q "sendTmux('d')" "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py still detaches the browser client instead of killing the visible tmux window" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q 'pb-clip-panel' "$ROOT_DIR/scripts/inject_toolbar.py"; then
@@ -374,6 +378,18 @@ if [[ -f "$ROOT_DIR/scripts/inject_toolbar.py" ]]; then
   fi
   if ! grep -q 'function isPasteControl' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -Fq 'if (!button || isPasteControl(button))' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not reserve normal click activation for clipboard reads" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'shouldPreserveTerminalFocus' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q 'scheduleTerminalFocus' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not preserve the mobile keyboard across ordinary toolbar actions" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'font-size: 18px' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q 'maximum-scale=1.0, user-scalable=no' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not guard the clipboard panel against mobile focus zoom" >&2
+    errors=$((errors + 1))
+  fi
+  if grep -q 'area.select()' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py still auto-selects the full clipboard textarea and can trigger mobile zoom" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q -- '--pb-toolbar-h: 260px' "$ROOT_DIR/scripts/inject_toolbar.py"; then
@@ -498,16 +514,20 @@ if [[ -f "$ROOT_DIR/configs/webterm/index.html" ]]; then
     echo "[invalid] configs/webterm/index.html fallback does not place Bottom in the page navigation row" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q 'data-kill="-terminal"' "$ROOT_DIR/configs/webterm/index.html"; then
-    echo "[invalid] configs/webterm/index.html fallback does not include the guarded current-terminal kill button" >&2
+  if ! grep -q 'data-kill="-window"' "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not include the guarded current-window kill button" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q 'pb-confirm' "$ROOT_DIR/configs/webterm/index.html"; then
     echo "[invalid] configs/webterm/index.html fallback does not visibly confirm the kill button before executing" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q "sendTmux('d')" "$ROOT_DIR/configs/webterm/index.html"; then
-    echo "[invalid] configs/webterm/index.html fallback does not detach the current tmux terminal on confirmed kill" >&2
+  if ! grep -q 'killCurrentTmuxWindow' "$ROOT_DIR/configs/webterm/index.html" || ! grep -Fq "sendTmux('&')" "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not kill the tmux window visible in the current browser client" >&2
+    errors=$((errors + 1))
+  fi
+  if grep -q "sendTmux('d')" "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback still detaches the browser client instead of killing the visible tmux window" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q 'pb-clip-panel' "$ROOT_DIR/configs/webterm/index.html"; then
@@ -540,6 +560,18 @@ if [[ -f "$ROOT_DIR/configs/webterm/index.html" ]]; then
   fi
   if ! grep -q 'function isPasteControl' "$ROOT_DIR/configs/webterm/index.html" || ! grep -Fq 'if (!button || isPasteControl(button))' "$ROOT_DIR/configs/webterm/index.html"; then
     echo "[invalid] configs/webterm/index.html fallback does not reserve normal click activation for clipboard reads" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'shouldPreserveTerminalFocus' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q 'scheduleTerminalFocus' "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not preserve the mobile keyboard across ordinary toolbar actions" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'font-size: 18px' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q 'maximum-scale=1.0, user-scalable=no' "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not guard the clipboard panel against mobile focus zoom" >&2
+    errors=$((errors + 1))
+  fi
+  if grep -q 'area.select()' "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback still auto-selects the full clipboard textarea and can trigger mobile zoom" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q -- '--pb-toolbar-h: 260px' "$ROOT_DIR/configs/webterm/index.html"; then
