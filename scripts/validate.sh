@@ -364,8 +364,16 @@ if [[ -f "$ROOT_DIR/scripts/inject_toolbar.py" ]]; then
     echo "[invalid] scripts/inject_toolbar.py does not include a manual paste/send fallback control" >&2
     errors=$((errors + 1))
   fi
+  if ! grep -q 'pb-clip-title' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q "panel.setAttribute('data-mode'" "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not visibly distinguish select and paste clipboard panels" >&2
+    errors=$((errors + 1))
+  fi
   if ! grep -q 'fallbackCopyText' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not fall back when browser clipboard writes fail" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'function isPasteControl' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -Fq 'if (!button || isPasteControl(button))' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not reserve normal click activation for clipboard reads" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q -- '--pb-toolbar-h: 260px' "$ROOT_DIR/scripts/inject_toolbar.py"; then
@@ -522,8 +530,16 @@ if [[ -f "$ROOT_DIR/configs/webterm/index.html" ]]; then
     echo "[invalid] configs/webterm/index.html fallback does not include a manual paste/send fallback control" >&2
     errors=$((errors + 1))
   fi
+  if ! grep -q 'pb-clip-title' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q "panel.setAttribute('data-mode'" "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not visibly distinguish select and paste clipboard panels" >&2
+    errors=$((errors + 1))
+  fi
   if ! grep -q 'fallbackCopyText' "$ROOT_DIR/configs/webterm/index.html"; then
     echo "[invalid] configs/webterm/index.html fallback does not fall back when browser clipboard writes fail" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'function isPasteControl' "$ROOT_DIR/configs/webterm/index.html" || ! grep -Fq 'if (!button || isPasteControl(button))' "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not reserve normal click activation for clipboard reads" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q -- '--pb-toolbar-h: 260px' "$ROOT_DIR/configs/webterm/index.html"; then

@@ -110,10 +110,11 @@ Check:
 
 Check:
 
-1. `/etc/pit-box/webterm/index.html` contains `pb-clip-panel`, `inset: 0`, `collectBufferText`, `collectDomText`, and `data-clip-send`.
+1. `/etc/pit-box/webterm/index.html` contains `pb-clip-panel`, `pb-clip-title`, `inset: 0`, `collectBufferText`, `collectDomText`, `isPasteControl`, and `data-clip-send`.
 2. tap `sel`; a full-screen native text panel should open with terminal scrollback selected for mobile copy handles.
-3. tap `paste`; if the browser blocks clipboard read access, paste into the native text panel and tap `send`.
-4. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old select-only toolbar active.
+3. tap `paste`; the browser should paste directly when it grants clipboard access. If it blocks the read, a panel titled `Paste into terminal` should open with only `send` and `close` actions.
+4. use the browser's native paste action in that fallback panel, then tap `send`.
+5. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript can leave the old shared select/paste panel active.
 
 ## Home page does not show live terminals
 

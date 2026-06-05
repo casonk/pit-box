@@ -44,6 +44,11 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   native textarea panel backed by xterm scrollback for selection/copy and a
   visible-terminal DOM fallback plus a manual paste/send fallback when
   `navigator.clipboard.readText()` is denied.
+- Run mobile WebTerm clipboard reads from the browser's normal `click` event,
+  not the toolbar's pointer-up fast path; WebKit can reject asynchronous
+  clipboard access outside that event. Keep denied-read paste fallback visibly
+  distinct from the select/copy panel so users know to use native paste and
+  then send.
 - Mobile WebTerm toolbar buttons should handle touch/pointer activation in
   addition to normal `click`; terminal canvases and mobile browser chrome can
   make click-only handlers feel intermittent even when the desktop path works.

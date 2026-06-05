@@ -19,7 +19,7 @@ rectangle "scripts/install_remote_desktop_gateway.sh\n1 local shell edge\n13 ext
 rectangle "scripts/install_ubuntu.sh\n0 local shell edges\n3 external tools" as shell_scripts_install_ubuntu_sh #DBEAFE
 rectangle "scripts/install_webterm.sh\n1 local shell edge\n9 external tools" as shell_scripts_install_webterm_sh #DBEAFE
 rectangle "scripts/package_client.sh\n0 local shell edges\n4 external tools" as shell_scripts_package_client_sh #DBEAFE
-rectangle "scripts/rebuild_webservices.sh\n1 local shell edge\n15 external tools" as shell_scripts_rebuild_webservices_sh #DBEAFE
+rectangle "scripts/rebuild_webservices.sh\n1 local shell edge\n18 external tools" as shell_scripts_rebuild_webservices_sh #DBEAFE
 rectangle "scripts/render_configs.sh\n0 local shell edges\n3 external tools" as shell_scripts_render_configs_sh #DBEAFE
 rectangle "scripts/render_remote_desktop_gateway.sh\n0 local shell edges\n5 external tools" as shell_scripts_render_remote_desktop_gateway_sh #DBEAFE
 rectangle "scripts/render_webterm_index.sh\n0 local shell edges\n2 external tools" as shell_scripts_render_webterm_index_sh #DBEAFE
@@ -156,6 +156,9 @@ shell_scripts_rebuild_webservices_sh --> tool_rdp
 shell_scripts_rebuild_webservices_sh --> tool_remote_desktop_web
 shell_scripts_rebuild_webservices_sh --> tool_render_remote_desktop_gateway_sh
 shell_scripts_rebuild_webservices_sh --> tool_render_webterm_index_sh
+shell_scripts_rebuild_webservices_sh --> tool_resolve_registry_field
+shell_scripts_rebuild_webservices_sh --> tool_rm
+shell_scripts_rebuild_webservices_sh --> tool_sleep
 shell_scripts_rebuild_webservices_sh --> tool_systemctl
 shell_scripts_render_configs_sh --> tool_cat
 shell_scripts_render_configs_sh --> tool_mkdir

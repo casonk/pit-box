@@ -159,6 +159,16 @@ body.pb-sel-mode .xterm canvas {
   background: #0d1117;
 }
 #pb-clip-panel.pb-open { display: flex; }
+#pb-clip-heading {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #c9d1d9;
+  font-family: ui-monospace, monospace;
+}
+#pb-clip-title { font-size: 20px; }
+#pb-clip-help { color: #8b949e; font-size: 14px; }
 #pb-clip-text {
   width: 100%;
   flex: 1 1 auto;
@@ -188,6 +198,8 @@ body.pb-sel-mode .xterm canvas {
   border-radius: 10px;
   font-size: 20px;
 }
+#pb-clip-panel[data-mode="select"] [data-clip-send],
+#pb-clip-panel[data-mode="paste"] [data-clip-copy] { display: none; }
 @media (orientation: landscape) and (max-height: 520px) {
   :root {
     --pb-topbar-h: 40px;
@@ -286,6 +298,10 @@ INJECTED_HTML = """\
   -->
 </div>
 <div id="pb-clip-panel" aria-hidden="true">
+  <div id="pb-clip-heading">
+    <strong id="pb-clip-title">Clipboard</strong>
+    <span id="pb-clip-help"></span>
+  </div>
   <textarea id="pb-clip-text"
     autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
   <div id="pb-clip-actions">
@@ -901,11 +917,22 @@ WS_INTERCEPTOR = """\
     var area = getClipTextArea();
     if (!panel || !area) { return; }
     var selectMode = mode === 'select';
+    var title = document.getElementById('pb-clip-title');
+    var help = document.getElementById('pb-clip-help');
     // Mobile Safari can refuse useful selection handles in readonly textareas.
     area.readOnly = false;
     area.value = text || '';
+    area.placeholder = selectMode ? '' : 'Touch and hold here, then choose Paste';
+    area.setAttribute('aria-label', selectMode ? 'Terminal text selection' : 'Text to paste into terminal');
     panel.classList.add('pb-open');
+    panel.setAttribute('data-mode', selectMode ? 'select' : 'paste');
     panel.setAttribute('aria-hidden', 'false');
+    if (title) { title.textContent = selectMode ? 'Select terminal text' : 'Paste into terminal'; }
+    if (help) {
+      help.textContent = selectMode
+        ? 'Select the text you need, then tap copy.'
+        : 'Use the browser paste action below, then tap send.';
+    }
     document.body.classList.toggle('pb-sel-mode', selectMode);
     setSelectButton(selectMode);
     window.requestAnimationFrame(function () {
@@ -922,10 +949,12 @@ WS_INTERCEPTOR = """\
     var area = getClipTextArea();
     if (panel) {
       panel.classList.remove('pb-open');
+      panel.removeAttribute('data-mode');
       panel.setAttribute('aria-hidden', 'true');
     }
     if (area) {
       area.value = '';
+      area.placeholder = '';
       area.readOnly = false;
     }
     document.body.classList.remove('pb-sel-mode');
@@ -1129,16 +1158,23 @@ WS_INTERCEPTOR = """\
     handleControlClick(button);
   }
 
+  function isPasteControl(button) {
+    return button && button.getAttribute('data-paste') !== null;
+  }
+
   document.addEventListener('pointerup', function (event) {
     if (event.pointerType === 'mouse') { return; }
-    if (!event.target.closest(CONTROL_SELECTOR)) { return; }
+    var button = event.target.closest(CONTROL_SELECTOR);
+    // WebKit can reject async clipboard reads unless they start from click.
+    if (!button || isPasteControl(button)) { return; }
     lastPointerControlAt = Date.now();
     activateControl(event);
   }, true);
 
   document.addEventListener('click', function (event) {
-    if (!event.target.closest(CONTROL_SELECTOR)) { return; }
-    if (Date.now() - lastPointerControlAt < 700) {
+    var button = event.target.closest(CONTROL_SELECTOR);
+    if (!button) { return; }
+    if (!isPasteControl(button) && Date.now() - lastPointerControlAt < 700) {
       event.preventDefault();
       event.stopPropagation();
       return;
