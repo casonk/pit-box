@@ -21,7 +21,7 @@ rectangle "scripts/install_remote_desktop_gateway.sh\n14 detected tools" as sour
 rectangle "scripts/install_ubuntu.sh\n3 detected tools" as source_scripts_install_ubuntu_sh #E0F2FE
 rectangle "scripts/install_webterm.sh\n10 detected tools" as source_scripts_install_webterm_sh #E0F2FE
 rectangle "scripts/package_client.sh\n4 detected tools" as source_scripts_package_client_sh #E0F2FE
-rectangle "scripts/rebuild_webservices.sh\n16 detected tools" as source_scripts_rebuild_webservices_sh #E0F2FE
+rectangle "scripts/rebuild_webservices.sh\n19 detected tools" as source_scripts_rebuild_webservices_sh #E0F2FE
 rectangle "scripts/render_configs.sh\n3 detected tools" as source_scripts_render_configs_sh #E0F2FE
 rectangle "scripts/render_remote_desktop_gateway.sh\n5 detected tools" as source_scripts_render_remote_desktop_gateway_sh #E0F2FE
 rectangle "scripts/render_webterm_index.sh\n2 detected tools" as source_scripts_render_webterm_index_sh #E0F2FE
@@ -170,6 +170,9 @@ source_scripts_rebuild_webservices_sh --> tool_rdp
 source_scripts_rebuild_webservices_sh --> tool_remote_desktop_web
 source_scripts_rebuild_webservices_sh --> tool_render_remote_desktop_gateway_sh
 source_scripts_rebuild_webservices_sh --> tool_render_webterm_index_sh
+source_scripts_rebuild_webservices_sh --> tool_resolve_registry_field
+source_scripts_rebuild_webservices_sh --> tool_rm
+source_scripts_rebuild_webservices_sh --> tool_sleep
 source_scripts_rebuild_webservices_sh --> tool_systemctl
 source_scripts_render_configs_sh --> tool_cat
 source_scripts_render_configs_sh --> tool_mkdir

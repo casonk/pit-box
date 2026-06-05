@@ -319,8 +319,9 @@ The expectation here is:
   then `PgUp`, `PgDn`, `Bottom`, and arrows
 - `sel`, `copy`, and `paste` provide mobile clipboard support: selection opens a native text
   panel that fills the screen and is backed by terminal scrollback or visible terminal DOM text;
-  copy uses browser clipboard with a textarea fallback, and paste falls back to the same native
-  panel with a `send` button when clipboard reads are blocked
+  copy uses browser clipboard with a textarea fallback; paste requests clipboard access from the
+  browser's normal click path and, when blocked, opens a clearly labeled paste-only panel with a
+  `send` button
 - The `-kill` button changes color on the first tap and only detaches the current browser
   terminal after a second tap, leaving the shared tmux windows intact
 - The terminal surface has an explicit one-finger touch scroller, and the page navigation buttons

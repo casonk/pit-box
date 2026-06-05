@@ -5,6 +5,7 @@ class "<color:red>ExportError</color>" as export_remote_desktop_password_to_keep
 class "Handler" as pit_box_api.Handler {
   do_DELETE()
   do_GET()
+  do_POST()
   {abstract}log_message()
 }
 class "<color:red>ResolveError</color>" as resolve_remote_desktop_password.ResolveError {
