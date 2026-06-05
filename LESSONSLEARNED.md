@@ -35,10 +35,11 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   line scrolling) first, then keep xterm line scrolling and DOM viewport sync
   only as fallbacks for non-tmux render tests. xterm scrollback can be empty
   while tmux owns the visible history.
-- To close only the current WebTerm browser terminal, detach the per-browser
-  tmux client (`prefix d`) rather than killing a tmux window or the shared base
-  session. Guard destructive toolbar actions with a visible two-click
-  confirmation.
+- Distinguish WebTerm browser-client detach from tmux-window kill. When a
+  visible-window kill is requested, send tmux's guarded `prefix+&` action
+  through that exact browser WebSocket so it targets the window visible in
+  that client; do not use `prefix d`, which only detaches the browser client.
+  Label the action as a window kill and retain a visible two-tap confirmation.
 - Mobile browsers can block direct Clipboard API reads and cannot reliably
   select terminal canvas text. WebTerm clipboard controls should provide a
   native textarea panel backed by xterm scrollback for selection/copy and a
@@ -52,6 +53,14 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 - Mobile WebTerm toolbar buttons should handle touch/pointer activation in
   addition to normal `click`; terminal canvases and mobile browser chrome can
   make click-only handlers feel intermittent even when the desktop path works.
+- Ordinary mobile WebTerm toolbar buttons should prevent focus theft on
+  pointer-down and refocus xterm after activation so the phone keyboard stays
+  open. Clipboard select/paste panels are exceptions because they manage a
+  native textarea.
+- Do not auto-focus or auto-select the full WebTerm select/copy fallback
+  textarea. Large programmatic textarea selections can make mobile browsers
+  zoom aggressively; keep the textarea font at least 16px and enforce the
+  intended mobile viewport scale.
 - Mobile WebTerm finger scrolling should be an explicit terminal gesture, not
   only native browser scrolling on `.xterm-viewport`. Prefer tmux mouse mode
   plus xterm's native touch-to-wheel handling: when apps such as Codex request

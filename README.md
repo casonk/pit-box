@@ -315,15 +315,17 @@ The expectation here is:
 - WebSocket keepalives (`--ping-interval 30`) prevent the browser session from going idle
 - Only accessible from devices connected to the WireGuard VPN
 - The generated terminal page groups mobile helper keys into three bottom toolbar rows: tmux
-  window controls plus a guarded `-kill` current-terminal button; `Tab`, `Esc`, and Ctrl keys;
+  window controls plus a guarded `-win` current-window button; `Tab`, `Esc`, and Ctrl keys;
   then `PgUp`, `PgDn`, `Bottom`, and arrows
 - `sel`, `copy`, and `paste` provide mobile clipboard support: selection opens a native text
   panel that fills the screen and is backed by terminal scrollback or visible terminal DOM text;
   copy uses browser clipboard with a textarea fallback; paste requests clipboard access from the
   browser's normal click path and, when blocked, opens a clearly labeled paste-only panel with a
-  `send` button
-- The `-kill` button changes color on the first tap and only detaches the current browser
-  terminal after a second tap, leaving the shared tmux windows intact
+  `send` button. Select/copy fallback panels do not auto-focus or auto-select their full textarea,
+  preventing mobile browsers from zooming into the panel
+- The `-win` button changes color on the first tap and kills the tmux window currently visible in
+  that exact browser client after a second tap. tmux windows are shared, so other browser clients
+  viewing that same window are also affected
 - The terminal surface has an explicit one-finger touch scroller, and the page navigation buttons
   use touch/pointer activation plus tmux copy-mode commands. Touch scrolling handles both
   `touch*` and pointer events, uses coordinate-based terminal hit testing when mobile browsers
@@ -335,7 +337,8 @@ The expectation here is:
   shell command history
 - Mobile keyboard layout uses `visualViewport` to raise the terminal stage and bottom toolbar
   above the on-screen keyboard, then refits xterm so the current prompt remains visible while
-  typing
+  typing. Ordinary helper buttons preserve and restore xterm focus so tapping them does not
+  dismiss the phone keyboard; clipboard panels intentionally manage their own textarea focus
 - Landscape phone layout compacts the bottom toolbar into a short horizontal scroller so the
   terminal retains usable height after rotation
 - The font controls default xterm to `17pt` and update xterm's `fontSize` option directly instead
