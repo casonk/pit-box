@@ -72,7 +72,7 @@ mkdir -p "$GUAC_HOME"
 chmod 700 "$BUILD_DIR" "$GUAC_HOME"
 
 cat > "$GUAC_HOME/guacamole.properties" <<EOF
-guacd-hostname: guacd
+guacd-hostname: pit-box-guacd
 guacd-port: 4822
 user-mapping: /etc/guacamole/user-mapping.xml
 EOF
