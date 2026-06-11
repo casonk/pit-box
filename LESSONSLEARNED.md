@@ -84,7 +84,9 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 - Mobile WebTerm landscape layout needs its own compact toolbar sizing. A
   portrait-height three-row toolbar can consume nearly the entire screen after
   rotation; switch to a short horizontal-scroller toolbar under low viewport
-  heights.
+  heights. Keep each button group horizontal in that compact landscape mode:
+  stacking a group vertically inside the short toolbar can push lower controls
+  such as the guarded `-win` kill button out of view.
 - WebTerm select/copy fallback panels should use a full-screen native textarea
   on phones. Half-height floating panels leave too little usable text area once
   mobile browser chrome, safe areas, and the terminal toolbar are present.
@@ -122,3 +124,8 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 - Service login credentials introduced in `pit-box` should resolve through the
   sibling `auto-pass` repo where possible. Keep direct password settings as
   ignored emergency fallbacks, not the normal source of truth.
+- When validating scripts that support `WEBTERM_ENV_SUFFIX`, check the
+  suffix-aware service/container variables or rendered-name construction rather
+  than only prod literals. Dev/prod Quadlet names such as
+  `pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service` should remain verifiable
+  without causing false validation failures.
