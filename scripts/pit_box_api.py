@@ -204,8 +204,11 @@ def run_task(task: str) -> dict:
     if not REBUILD_SCRIPT:
         return {"ok": False, "error": "scripts directory not configured (--rebuild-script)"}
     script = os.path.join(os.path.dirname(REBUILD_SCRIPT), _TASK_SCRIPTS[task])
+    cmd = [script]
+    if task == "render-configs" and SETTINGS_FILE:
+        cmd += ["--settings", SETTINGS_FILE]
     try:
-        r = subprocess.run([script], capture_output=True, text=True, timeout=60)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": "task timed out (60 s)"}
     except OSError as exc:
