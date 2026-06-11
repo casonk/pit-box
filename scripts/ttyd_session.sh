@@ -5,7 +5,7 @@
 # next reconnect does not snap back to window 0.
 set -euo pipefail
 
-BASE_SESSION="pit-box"
+BASE_SESSION="${1:-pit-box}"
 
 # Ensure the base session exists (no-op if already running).
 tmux new-session -d -s "$BASE_SESSION" 2>/dev/null || true

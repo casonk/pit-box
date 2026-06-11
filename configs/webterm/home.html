@@ -237,6 +237,46 @@
     </div>
   </div>
 
+  <div class="section">
+    <div class="section-head">
+      <div class="section-label">Services</div>
+      <div class="section-count" id="rebuild-status"></div>
+    </div>
+    <div id="svc-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      <button class="btn btn-gray" data-rebuild="ttyd"  style="margin:0">rebuild ttyd</button>
+      <button class="btn btn-gray" data-rebuild="api"   style="margin:0">rebuild api</button>
+      <button class="btn btn-gray" data-rebuild="caddy" style="margin:0">rebuild caddy</button>
+      <button class="btn btn-gray" data-rebuild="dns"   style="margin:0">rebuild dns</button>
+      <button class="btn btn-gray" data-rebuild="all"   style="margin:0;grid-column:1/-1">rebuild all</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-label">Tools</div>
+      <div class="section-count" id="task-status"></div>
+    </div>
+    <div id="task-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+      <button class="btn btn-gray" data-task="validate"       style="margin:0">validate</button>
+      <button class="btn btn-gray" data-task="render-configs" style="margin:0">render configs</button>
+      <button class="btn btn-gray" data-task="package-client" style="margin:0;grid-column:1/-1">package client</button>
+    </div>
+    <pre id="task-output" style="display:none;margin-top:10px;font-size:11px;font-family:ui-monospace,monospace;color:#8b949e;background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word"></pre>
+  </div>
+
+  <div id="rebuild-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;width:100%;max-width:320px">
+      <div id="modal-label" style="font-size:13px;font-weight:600;color:#e6edf3;font-family:ui-monospace,monospace;margin-bottom:14px"></div>
+      <input type="password" id="modal-pwd" autocomplete="current-password" placeholder="sudo password"
+        style="width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;color:#e6edf3;font-size:15px;margin-bottom:12px;outline:none;-webkit-appearance:none;box-sizing:border-box">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button id="modal-cancel" class="btn btn-gray" style="margin:0">Cancel</button>
+        <button id="modal-ok"     class="btn btn-green" style="margin:0">Rebuild</button>
+      </div>
+      <pre id="modal-out" style="display:none;margin-top:12px;font-size:11px;font-family:ui-monospace,monospace;color:#8b949e;background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;max-height:180px;overflow-y:auto;white-space:pre-wrap;word-break:break-word"></pre>
+    </div>
+  </div>
+
   <script>
   (function () {
     function readJson(url, options) {
@@ -364,6 +404,138 @@
 
     document.getElementById('btn-new').addEventListener('click', function () {
       window.location.href = '/term?action=new';
+    });
+
+    var modalEl     = document.getElementById('rebuild-modal');
+    var modalLabel  = document.getElementById('modal-label');
+    var modalPwd    = document.getElementById('modal-pwd');
+    var modalOk     = document.getElementById('modal-ok');
+    var modalCancel = document.getElementById('modal-cancel');
+    var modalOut    = document.getElementById('modal-out');
+    var modalSvc    = null;
+    var modalBusy   = false;
+    var modalDone   = false;
+
+    function openRebuildModal(service) {
+      modalSvc  = service;
+      modalBusy = false;
+      modalDone = false;
+      modalLabel.textContent = 'rebuild ' + service;
+      modalPwd.value = '';
+      modalOk.textContent = 'Rebuild';
+      modalOk.disabled = false;
+      modalCancel.disabled = false;
+      modalOut.style.display = 'none';
+      modalOut.textContent = '';
+      modalEl.style.display = 'flex';
+      setTimeout(function () { modalPwd.focus(); }, 50);
+    }
+
+    function closeRebuildModal() {
+      if (modalBusy) { return; }
+      modalEl.style.display = 'none';
+      modalSvc = null;
+    }
+
+    function doRebuild() {
+      if (modalDone) { closeRebuildModal(); return; }
+      if (!modalSvc || modalBusy) { return; }
+      modalBusy = true;
+      modalOut.style.display = 'none';
+      modalOk.textContent = 'rebuilding…';
+      modalOk.disabled = true;
+      modalCancel.disabled = true;
+      var svc = modalSvc;
+      readJson('/api/rebuild', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service: svc, password: modalPwd.value })
+      }).then(function (result) {
+        modalBusy = false;
+        modalCancel.disabled = false;
+        var out = result.output || result.error || '';
+        if (out) {
+          modalOut.textContent = out;
+          modalOut.style.display = 'block';
+          modalOut.scrollTop = modalOut.scrollHeight;
+        }
+        if (result.ok) {
+          modalOk.textContent = 'Close';
+          modalDone = true;
+          modalOk.disabled = false;
+        } else {
+          if (!out) {
+            modalOut.textContent = 'rebuild failed';
+            modalOut.style.display = 'block';
+          }
+          modalOk.textContent = 'Retry';
+          modalOk.disabled = false;
+        }
+      }).catch(function () {
+        modalBusy = false;
+        modalCancel.disabled = false;
+        if (svc === 'api' || svc === 'all') {
+          modalOut.textContent = '(connection closed — service restarted)';
+          modalOut.style.display = 'block';
+          modalOk.textContent = 'Close';
+          modalDone = true;
+          modalOk.disabled = false;
+        } else {
+          modalOut.textContent = 'request failed';
+          modalOut.style.display = 'block';
+          modalOk.textContent = 'Retry';
+          modalOk.disabled = false;
+        }
+      });
+    }
+
+    modalPwd.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !modalBusy) { doRebuild(); }
+    });
+    modalOk.addEventListener('click', doRebuild);
+    modalCancel.addEventListener('click', closeRebuildModal);
+    modalEl.addEventListener('click', function (e) {
+      if (e.target === modalEl) { closeRebuildModal(); }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modalEl.style.display === 'flex') { closeRebuildModal(); }
+    });
+
+    document.getElementById('svc-grid').addEventListener('click', function (event) {
+      var button = event.target.closest('[data-rebuild]');
+      if (!button) { return; }
+      openRebuildModal(button.getAttribute('data-rebuild'));
+    });
+
+    document.getElementById('task-grid').addEventListener('click', function (event) {
+      var button = event.target.closest('[data-task]');
+      if (!button || button.disabled) { return; }
+      var task    = button.getAttribute('data-task');
+      var label   = button.textContent;
+      var outEl   = document.getElementById('task-output');
+      var statEl  = document.getElementById('task-status');
+      button.textContent = '…';
+      button.disabled = true;
+      outEl.style.display = 'none';
+      if (statEl) { statEl.textContent = 'running…'; }
+      readJson('/api/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: task })
+      }).then(function (result) {
+        button.textContent = label;
+        button.disabled = false;
+        if (statEl) { statEl.textContent = result.ok ? 'ok' : 'failed'; }
+        var out = result.output || (!result.ok && (result.error || 'failed')) || '';
+        if (out) {
+          outEl.textContent = out;
+          outEl.style.display = 'block';
+        }
+      }).catch(function () {
+        button.textContent = label;
+        button.disabled = false;
+        if (statEl) { statEl.textContent = 'request failed'; }
+      });
     });
 
     document.addEventListener('visibilitychange', function () {

@@ -1,19 +1,33 @@
 #!/usr/bin/env bash
 # Redeploy rendered web-service configs and restart the affected systemd units.
-# Usage: rebuild_webservices.sh [ttyd] [api] [dns] [caddy] [cockpit] [rdp] [desktop-web]
+# Usage: rebuild_webservices.sh [--settings FILE] [ttyd] [api] [dns] [caddy] [cockpit] [rdp] [desktop-web]
 # With no arguments all enabled services are rebuilt.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SETTINGS_FILE="$ROOT_DIR/settings.env"
 
-[[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings.env" >&2; exit 1; }
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --settings)
+      SETTINGS_FILE="$2"
+      [[ "$SETTINGS_FILE" = /* ]] || SETTINGS_FILE="$ROOT_DIR/$SETTINGS_FILE"
+      shift 2
+      ;;
+    *) break;;
+  esac
+done
+
+[[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings file: $SETTINGS_FILE" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
 # shellcheck source=/dev/null
 source "$ROOT_DIR/scripts/site_registry.sh"
 
 WEBTERM_API_PORT="${WEBTERM_API_PORT:-$((WEBTERM_PORT + 1))}"
+WEBTERM_ENV_SUFFIX="${WEBTERM_ENV_SUFFIX:-}"
+WEBTERM_TMUX_SESSION="${WEBTERM_TMUX_SESSION:-pit-box}"
+INSTALL_BASE="/etc/pit-box${WEBTERM_ENV_SUFFIX}"
 
 ALL_SERVICES=()
 [[ "${WEBTERM_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(ttyd api dns caddy)
@@ -22,7 +36,7 @@ ALL_SERVICES=()
 [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]] && ALL_SERVICES+=(desktop-web)
 
 if [[ ${#ALL_SERVICES[@]} -eq 0 ]]; then
-  echo "No web services enabled in settings.env. Nothing to rebuild."
+  echo "No web services enabled in ${SETTINGS_FILE}. Nothing to rebuild."
   exit 0
 fi
 
@@ -66,55 +80,55 @@ check_api_post_handler() {
 }
 
 rebuild_ttyd() {
-  local svc="$ROOT_DIR/build/webterm/ttyd.service"
-  local api_svc="$ROOT_DIR/build/webterm/pit-box-api.service"
+  local svc="$ROOT_DIR/build/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service"
+  local api_svc="$ROOT_DIR/build/webterm/pit-box-api${WEBTERM_ENV_SUFFIX}.service"
   [[ -f "$svc" ]] || { echo "Missing $svc — run render_configs.sh first" >&2; return 1; }
   [[ -f "$api_svc" ]] || { echo "Missing $api_svc — run render_configs.sh first" >&2; return 1; }
   ensure_package ttyd
   ensure_package tmux
-  mkdir -p /etc/pit-box/webterm
-  cp "$ROOT_DIR/configs/webterm/home.html" /etc/pit-box/webterm/home.html
-  install -m 0755 "$ROOT_DIR/scripts/ttyd_session.sh" /etc/pit-box/ttyd_session.sh
-  install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" /etc/pit-box/pit_box_api.py
-  "$ROOT_DIR/scripts/render_webterm_index.sh" /etc/pit-box/webterm/index.html
+  mkdir -p "${INSTALL_BASE}/webterm"
+  cp "$ROOT_DIR/configs/webterm/home.html" "${INSTALL_BASE}/webterm/home.html"
+  install -m 0755 "$ROOT_DIR/scripts/ttyd_session.sh" "${INSTALL_BASE}/ttyd_session.sh"
+  install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" "${INSTALL_BASE}/pit_box_api.py"
+  "$ROOT_DIR/scripts/render_webterm_index.sh" "${INSTALL_BASE}/webterm/index.html"
 
-  cp "$svc" /etc/systemd/system/ttyd.service
-  cp "$api_svc" /etc/systemd/system/pit-box-api.service
+  cp "$svc" "/etc/systemd/system/ttyd${WEBTERM_ENV_SUFFIX}.service"
+  cp "$api_svc" "/etc/systemd/system/pit-box-api${WEBTERM_ENV_SUFFIX}.service"
   systemctl daemon-reload
-  systemctl enable --now pit-box-api
-  systemctl restart pit-box-api
+  systemctl enable --now "pit-box-api${WEBTERM_ENV_SUFFIX}"
+  systemctl restart "pit-box-api${WEBTERM_ENV_SUFFIX}"
   check_api_post_handler
-  systemctl enable --now ttyd
+  systemctl enable --now "ttyd${WEBTERM_ENV_SUFFIX}"
   # Keep ttyd last. This script is often run from inside WebTerm, and restarting
   # ttyd kills the current browser terminal before later commands can run.
-  systemctl restart ttyd
-  echo "[ok] ttyd rebuilt (home/API refreshed too)"
+  systemctl restart "ttyd${WEBTERM_ENV_SUFFIX}"
+  echo "[ok] ttyd${WEBTERM_ENV_SUFFIX} rebuilt (home/API refreshed too)"
 }
 
 rebuild_api() {
-  local svc="$ROOT_DIR/build/webterm/pit-box-api.service"
+  local svc="$ROOT_DIR/build/webterm/pit-box-api${WEBTERM_ENV_SUFFIX}.service"
   [[ -f "$svc" ]] || { echo "Missing $svc — run render_configs.sh first" >&2; return 1; }
-  install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" /etc/pit-box/pit_box_api.py
-  cp "$svc" /etc/systemd/system/pit-box-api.service
+  install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" "${INSTALL_BASE}/pit_box_api.py"
+  cp "$svc" "/etc/systemd/system/pit-box-api${WEBTERM_ENV_SUFFIX}.service"
   systemctl daemon-reload
-  systemctl enable --now pit-box-api
-  systemctl restart pit-box-api
+  systemctl enable --now "pit-box-api${WEBTERM_ENV_SUFFIX}"
+  systemctl restart "pit-box-api${WEBTERM_ENV_SUFFIX}"
   check_api_post_handler
-  echo "[ok] pit-box-api rebuilt"
+  echo "[ok] pit-box-api${WEBTERM_ENV_SUFFIX} rebuilt"
 }
 
 rebuild_caddy() {
-  local src="$ROOT_DIR/build/webterm/caddy-webterm.caddy"
+  local src="$ROOT_DIR/build/webterm/caddy-webterm${WEBTERM_ENV_SUFFIX}.caddy"
   local caddyfile="/etc/caddy/Caddyfile"
   [[ -f "$src" ]] || { echo "Missing $src — run render_configs.sh first" >&2; return 1; }
   mkdir -p /etc/caddy/Caddyfile.d
-  cp "$src" /etc/caddy/Caddyfile.d/pit-box-webterm.caddy
+  cp "$src" "/etc/caddy/Caddyfile.d/pit-box-webterm${WEBTERM_ENV_SUFFIX}.caddy"
   cleanup_wiring_harness_owned_caddy_dropins
   grep -q 'import Caddyfile.d' "$caddyfile" || \
     printf '\nimport Caddyfile.d/*.caddy\n' >> "$caddyfile"
   caddy validate --config "$caddyfile"
   systemctl reload caddy
-  echo "[ok] caddy rebuilt"
+  echo "[ok] caddy${WEBTERM_ENV_SUFFIX} rebuilt"
 }
 
 cleanup_wiring_harness_owned_caddy_dropins() {
@@ -131,13 +145,13 @@ cleanup_wiring_harness_owned_caddy_dropins() {
 }
 
 rebuild_dns() {
-  local src="$ROOT_DIR/build/webterm/dnsmasq-vpn.conf"
+  local src="$ROOT_DIR/build/webterm/dnsmasq-vpn${WEBTERM_ENV_SUFFIX}.conf"
   [[ -f "$src" ]] || { echo "Missing $src — run render_configs.sh first" >&2; return 1; }
   ensure_package dnsmasq
-  cp "$src" /etc/dnsmasq.d/pit-box-vpn.conf
+  cp "$src" "/etc/dnsmasq.d/pit-box${WEBTERM_ENV_SUFFIX}-vpn.conf"
   systemctl enable --now dnsmasq
   systemctl restart dnsmasq
-  echo "[ok] dnsmasq rebuilt"
+  echo "[ok] dnsmasq${WEBTERM_ENV_SUFFIX} rebuilt"
 }
 
 rebuild_cockpit() {
