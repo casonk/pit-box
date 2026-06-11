@@ -865,6 +865,14 @@ WS_INTERCEPTOR = """\
     if (btn) { btn.classList.toggle('pb-active', active); }
   }
 
+  function setViewportScalable(scalable) {
+    var meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) { return; }
+    meta.setAttribute('content', scalable
+      ? 'width=device-width, initial-scale=1.0, viewport-fit=cover'
+      : 'width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no');
+  }
+
   function getClipPanel() {
     return document.getElementById('pb-clip-panel');
   }
@@ -916,6 +924,7 @@ WS_INTERCEPTOR = """\
     panel.classList.add('pb-open');
     panel.setAttribute('data-mode', selectMode ? 'select' : 'paste');
     panel.setAttribute('aria-hidden', 'false');
+    setViewportScalable(true);
     if (title) { title.textContent = selectMode ? 'Select terminal text' : 'Paste into terminal'; }
     if (help) {
       help.textContent = selectMode
@@ -948,6 +957,7 @@ WS_INTERCEPTOR = """\
     }
     document.body.classList.remove('pb-sel-mode');
     setSelectButton(false);
+    setViewportScalable(false);
   }
 
   function toggleSelMode() {
