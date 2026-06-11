@@ -39,6 +39,15 @@ source "$SETTINGS_FILE"
 
 WEBTERM_ENV_SUFFIX="${WEBTERM_ENV_SUFFIX:-}"
 WEBTERM_TMUX_SESSION="${WEBTERM_TMUX_SESSION:-pit-box}"
+WEBTERM_SIBLING_URL="${WEBTERM_SIBLING_URL:-}"
+# Auto-derive env label from suffix when not explicitly set.
+if [[ -n "${WEBTERM_ENV_LABEL:-}" ]]; then
+  :
+elif [[ -n "$WEBTERM_ENV_SUFFIX" ]]; then
+  WEBTERM_ENV_LABEL="${WEBTERM_ENV_SUFFIX#-}"
+else
+  WEBTERM_ENV_LABEL="prod"
+fi
 
 PRIVATE_DNS_REQUIRED=false
 if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
@@ -146,6 +155,15 @@ if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
   : "${WEBTERM_USER:?WEBTERM_ENABLED=true but WEBTERM_USER is not set}"
   : "${CADDY_CERTS_DIR:?WEBTERM_ENABLED=true but CADDY_CERTS_DIR is not set}"
   WEBTERM_API_PORT=$((WEBTERM_PORT + 1))
+
+  # Build optional env args for the API ExecStart line.
+  _api_env_args="--env-label ${WEBTERM_ENV_LABEL}"
+  [[ -n "$WEBTERM_SIBLING_URL" ]] && _api_env_args="${_api_env_args} --sibling-url ${WEBTERM_SIBLING_URL}"
+  [[ "${COCKPIT_ENABLED:-false}" == "true" && -n "${COCKPIT_HOSTNAME:-}" ]] && \
+    _api_env_args="${_api_env_args} --cockpit-url https://${COCKPIT_HOSTNAME}"
+  [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" && -n "${REMOTE_DESKTOP_WEB_HOSTNAME:-}" ]] && \
+    _api_env_args="${_api_env_args} --desktop-url https://${REMOTE_DESKTOP_WEB_HOSTNAME}"
+
   mkdir -p "$BUILD_DIR/webterm"
   cat > "$BUILD_DIR/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service" <<EOF
 [Unit]
@@ -178,7 +196,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=${WEBTERM_USER}
-ExecStart=/usr/bin/python3 /etc/pit-box${WEBTERM_ENV_SUFFIX}/pit_box_api.py --port ${WEBTERM_API_PORT} --session ${WEBTERM_TMUX_SESSION} --rebuild-script ${ROOT_DIR}/scripts/rebuild_webservices.sh --settings-file ${SETTINGS_FILE}
+ExecStart=/usr/bin/python3 /etc/pit-box${WEBTERM_ENV_SUFFIX}/pit_box_api.py --port ${WEBTERM_API_PORT} --session ${WEBTERM_TMUX_SESSION} --rebuild-script ${ROOT_DIR}/scripts/rebuild_webservices.sh --settings-file ${SETTINGS_FILE} ${_api_env_args}
 Restart=on-failure
 RestartSec=5
 
@@ -262,4 +280,37 @@ server=${LAN_DNS_SERVER}
 ${DNS_ADDRESSES}
 EOF
   echo "Rendered build/webterm/dnsmasq-vpn${WEBTERM_ENV_SUFFIX}.conf"
+fi
+
+if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
+  : "${COCKPIT_HOSTNAME:?COCKPIT_ENABLED=true but COCKPIT_HOSTNAME is not set}"
+  : "${CADDY_CERTS_DIR:?COCKPIT_ENABLED=true but CADDY_CERTS_DIR is not set}"
+  COCKPIT_PORT="${COCKPIT_PORT:-9090}"
+  mkdir -p "$BUILD_DIR/cockpit"
+  cat > "$BUILD_DIR/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy" <<EOF
+https://${COCKPIT_HOSTNAME} {
+	tls ${CADDY_CERTS_DIR}/server.crt ${CADDY_CERTS_DIR}/server.key {
+		client_auth {
+			mode require_and_verify
+			trust_pool file ${CADDY_CERTS_DIR}/ca.crt
+		}
+	}
+
+	encode zstd gzip
+
+	reverse_proxy https://localhost:${COCKPIT_PORT} {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		header_up Host localhost:${COCKPIT_PORT}
+		header_up X-Forwarded-Proto https
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
+}
+EOF
+  echo "Rendered build/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
 fi

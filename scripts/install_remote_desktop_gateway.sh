@@ -3,19 +3,33 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SETTINGS_FILE="$ROOT_DIR/settings.env"
-BUILD_DIR="$ROOT_DIR/build/remote-desktop"
-INSTALL_DIR="/etc/pit-box/remote-desktop"
-CADDY_SOURCE="$BUILD_DIR/caddy-guacamole.caddy"
-CADDY_TARGET="/etc/caddy/Caddyfile.d/pit-box-remote-desktop.caddy"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --settings)
+      SETTINGS_FILE="$2"
+      [[ "$SETTINGS_FILE" = /* ]] || SETTINGS_FILE="$ROOT_DIR/$SETTINGS_FILE"
+      shift 2
+      ;;
+    *) echo "Unknown argument: $1" >&2; exit 1;;
+  esac
+done
+
 CADDYFILE="/etc/caddy/Caddyfile"
 QUADLET_DIR="/etc/containers/systemd"
 
 # shellcheck source=/dev/null
 source "$ROOT_DIR/scripts/site_registry.sh"
 
-[[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings.env" >&2; exit 1; }
+[[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings file: $SETTINGS_FILE" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
+
+WEBTERM_ENV_SUFFIX="${WEBTERM_ENV_SUFFIX:-}"
+BUILD_DIR="$ROOT_DIR/build/remote-desktop${WEBTERM_ENV_SUFFIX}"
+INSTALL_DIR="/etc/pit-box${WEBTERM_ENV_SUFFIX}/remote-desktop"
+CADDY_SOURCE="$BUILD_DIR/caddy-guacamole${WEBTERM_ENV_SUFFIX}.caddy"
+CADDY_TARGET="/etc/caddy/Caddyfile.d/pit-box-remote-desktop${WEBTERM_ENV_SUFFIX}.caddy"
 
 : "${REMOTE_DESKTOP_WEB_ENABLED:?Missing REMOTE_DESKTOP_WEB_ENABLED}"
 if [[ "$REMOTE_DESKTOP_WEB_ENABLED" != "true" ]]; then
@@ -32,9 +46,9 @@ REMOTE_DESKTOP_WEB_INGRESS="$(
 for src in \
     "$BUILD_DIR/guacamole-home/guacamole.properties" \
     "$BUILD_DIR/guacamole-home/user-mapping.xml" \
-    "$BUILD_DIR/pit-box-guacamole.network" \
-    "$BUILD_DIR/pit-box-guacd.container" \
-    "$BUILD_DIR/pit-box-guacamole.container" \
+    "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network" \
+    "$BUILD_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container" \
+    "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container" \
     "$CADDY_SOURCE"; do
   if [[ ! -f "$src" ]]; then
     echo "Missing rendered file: $src" >&2
@@ -74,17 +88,17 @@ for ctr in remote-desktop_guacamole_1 remote-desktop_guacd_1; do
 done
 
 # Stop existing quadlet services before replacing their unit files.
-for svc in pit-box-guacamole.service pit-box-guacd.service; do
+for svc in "pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service" "pit-box-guacd${WEBTERM_ENV_SUFFIX}.service"; do
   systemctl is-active "$svc" &>/dev/null && systemctl stop "$svc" || true
 done
 
 mkdir -p "$QUADLET_DIR"
-install -m 644 "$BUILD_DIR/pit-box-guacamole.network"   "$QUADLET_DIR/pit-box-guacamole.network"
-install -m 644 "$BUILD_DIR/pit-box-guacd.container"     "$QUADLET_DIR/pit-box-guacd.container"
-install -m 644 "$BUILD_DIR/pit-box-guacamole.container" "$QUADLET_DIR/pit-box-guacamole.container"
+install -m 644 "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network"   "$QUADLET_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network"
+install -m 644 "$BUILD_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container"     "$QUADLET_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container"
+install -m 644 "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container" "$QUADLET_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container"
 
 systemctl daemon-reload
-systemctl start pit-box-guacamole.service
+systemctl start "pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service"
 
 if command -v curl >/dev/null 2>&1; then
   ready=false
@@ -98,7 +112,7 @@ if command -v curl >/dev/null 2>&1; then
   if [[ "$ready" != "true" ]]; then
     echo "Guacamole did not answer on 127.0.0.1:${REMOTE_DESKTOP_WEB_PORT} within 60 seconds." >&2
     echo "Recent container logs:" >&2
-    podman logs --tail=80 pit-box-guacamole >&2 || true
+    podman logs --tail=80 "pit-box-guacamole${WEBTERM_ENV_SUFFIX}" >&2 || true
     exit 1
   fi
 fi

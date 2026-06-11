@@ -22,7 +22,28 @@
       color: #e6edf3;
       font-family: ui-monospace, monospace;
     }
-    .dot { width: 8px; height: 8px; background: #3fb950; border-radius: 50%; }
+    .dot { width: 8px; height: 8px; background: #3fb950; border-radius: 50%; flex-shrink: 0; }
+    .env-badge {
+      display: none;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .env-prod { background: #0d2818; color: #3fb950; border: 1px solid #2ea043; }
+    .env-dev  { background: #2a1f00; color: #e3b341; border: 1px solid #9e6a03; }
+    .env-switch {
+      font-size: 12px;
+      color: #58a6ff;
+      text-decoration: none;
+      margin-left: 6px;
+      flex-shrink: 0;
+    }
+    .env-switch:hover { text-decoration: underline; }
     .stats {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -197,6 +218,8 @@
   <header>
     <div class="dot"></div>
     <h1>pit-box</h1>
+    <span id="env-badge" class="env-badge"></span>
+    <a  id="env-switch" class="env-switch" href="#" style="display:none"></a>
   </header>
 
   <div class="stats">
@@ -235,6 +258,13 @@
     <div class="term-grid" id="term-grid">
       <div class="empty" style="grid-column:1/-1">Loading...</div>
     </div>
+  </div>
+
+  <div class="section" id="ext-services-section" style="display:none">
+    <div class="section-head">
+      <div class="section-label">Launch</div>
+    </div>
+    <div id="ext-services-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
   </div>
 
   <div class="section">
@@ -538,12 +568,55 @@
       });
     });
 
+    function renderEnv(env) {
+      var badge  = document.getElementById('env-badge');
+      var toggle = document.getElementById('env-switch');
+      var label  = (env.label || '').toLowerCase();
+      if (badge && label) {
+        badge.textContent = label;
+        badge.className = 'env-badge env-' + label;
+        badge.style.display = 'inline-block';
+      }
+      if (toggle && env.sibling_url) {
+        var siblingLabel = env.sibling_label || (label === 'prod' ? 'dev' : 'prod');
+        toggle.textContent = '→ ' + siblingLabel;
+        toggle.href = env.sibling_url;
+        toggle.style.display = 'inline';
+      }
+      var section = document.getElementById('ext-services-section');
+      var grid    = document.getElementById('ext-services-grid');
+      var svc = env.services || {};
+      var btns = [];
+      if (svc.cockpit) {
+        btns.push(
+          '<a class="btn btn-gray" href="' + esc(svc.cockpit) + '" target="_blank" rel="noopener noreferrer" style="margin:0">Open Cockpit</a>'
+        );
+      }
+      if (svc.desktop) {
+        btns.push(
+          '<a class="btn btn-gray" href="' + esc(svc.desktop) + '" target="_blank" rel="noopener noreferrer" style="margin:0">Open Desktop</a>'
+        );
+      }
+      if (btns.length && section && grid) {
+        grid.innerHTML = btns.join('');
+        section.style.display = 'block';
+      }
+    }
+
+    function loadEnv() {
+      fetch('/api/env', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) { if (data) { renderEnv(data); } })
+        .catch(function () {});
+    }
+
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) { loadState(); }
     });
 
     window.setInterval(loadState, 4000);
     loadState();
+    loadEnv();
   }());
   </script>
 </body>
