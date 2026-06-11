@@ -8,6 +8,7 @@ Endpoints:
   GET    /api/windows          - list tmux windows
   POST   /api/terminals/scroll - scroll attached WebTerm tmux copy-mode panes
   POST   /api/rebuild          - run rebuild_webservices.sh via sudo -S (password in body)
+  POST   /api/promote          - render prod configs then rebuild all prod services (one password)
   POST   /api/task             - run a no-sudo pit-box script (task name in body)
   DELETE /api/windows/<n>      - kill tmux window N
 """
@@ -160,6 +161,43 @@ _TASK_SCRIPTS: dict[str, str] = {
 }
 
 
+def promote_to_prod(password: str) -> dict:
+    """Render prod configs (no sudo) then rebuild all prod services (one sudo call)."""
+    if not REBUILD_SCRIPT:
+        return {"ok": False, "error": "rebuild script not configured (--rebuild-script)"}
+    scripts_dir = os.path.dirname(REBUILD_SCRIPT)
+    render_script = os.path.join(scripts_dir, "render_configs.sh")
+    try:
+        r1 = subprocess.run([render_script], capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "render timed out (60 s)"}
+    except OSError as exc:
+        return {"ok": False, "error": str(exc)}
+    if r1.returncode != 0:
+        combined = "\n".join(filter(None, [r1.stdout.strip(), r1.stderr.strip()]))
+        lines = combined.splitlines()
+        return {"ok": False, "error": "render_configs failed", "output": "\n".join(lines[-30:])}
+    # Intentionally no --settings: targets prod settings.env regardless of current instance
+    cmd = ["sudo", "-S", "--", REBUILD_SCRIPT]
+    try:
+        r2 = subprocess.run(
+            cmd,
+            input=password + "\n",
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "rebuild timed out (120 s)"}
+    except OSError as exc:
+        return {"ok": False, "error": str(exc)}
+    render_out = "\n".join(filter(None, [r1.stdout.strip(), r1.stderr.strip()]))
+    rebuild_out = "\n".join(filter(None, [r2.stdout.strip(), r2.stderr.strip()]))
+    combined_out = "\n".join(filter(None, [render_out, rebuild_out]))
+    lines = combined_out.splitlines()
+    return {"ok": r2.returncode == 0, "output": "\n".join(lines[-30:])}
+
+
 def run_task(task: str) -> dict:
     if task not in _TASK_SCRIPTS:
         return {"ok": False, "error": f"unknown task: {task!r}"}
@@ -296,6 +334,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
             service = str(payload.get("service", ""))
             password = str(payload.get("password", ""))
             result = rebuild_service(service, password)
+            self._send(200, result)
+            return
+        if self.path == "/api/promote":
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                self._send(400, {"error": "invalid json body"})
+                return
+            password = str(payload.get("password", ""))
+            result = promote_to_prod(password)
             self._send(200, result)
             return
         if self.path == "/api/task":

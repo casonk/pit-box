@@ -278,6 +278,7 @@
       <button class="btn btn-gray" data-rebuild="caddy" style="margin:0">rebuild caddy</button>
       <button class="btn btn-gray" data-rebuild="dns"   style="margin:0">rebuild dns</button>
       <button class="btn btn-gray" data-rebuild="all"   style="margin:0;grid-column:1/-1">rebuild all</button>
+      <button class="btn btn-green" id="btn-promote" style="margin:0;grid-column:1/-1;display:none">promote to prod ↑</button>
     </div>
   </div>
 
@@ -443,16 +444,34 @@
     var modalCancel = document.getElementById('modal-cancel');
     var modalOut    = document.getElementById('modal-out');
     var modalSvc    = null;
+    var modalMode   = 'rebuild';
     var modalBusy   = false;
     var modalDone   = false;
 
     function openRebuildModal(service) {
       modalSvc  = service;
+      modalMode = 'rebuild';
       modalBusy = false;
       modalDone = false;
       modalLabel.textContent = 'rebuild ' + service;
       modalPwd.value = '';
       modalOk.textContent = 'Rebuild';
+      modalOk.disabled = false;
+      modalCancel.disabled = false;
+      modalOut.style.display = 'none';
+      modalOut.textContent = '';
+      modalEl.style.display = 'flex';
+      setTimeout(function () { modalPwd.focus(); }, 50);
+    }
+
+    function openPromoteModal() {
+      modalSvc  = null;
+      modalMode = 'promote';
+      modalBusy = false;
+      modalDone = false;
+      modalLabel.textContent = 'promote to prod — render configs + rebuild all services';
+      modalPwd.value = '';
+      modalOk.textContent = 'Promote';
       modalOk.disabled = false;
       modalCancel.disabled = false;
       modalOut.style.display = 'none';
@@ -469,17 +488,23 @@
 
     function doRebuild() {
       if (modalDone) { closeRebuildModal(); return; }
-      if (!modalSvc || modalBusy) { return; }
+      if (modalMode === 'rebuild' && !modalSvc) { return; }
+      if (modalBusy) { return; }
       modalBusy = true;
       modalOut.style.display = 'none';
-      modalOk.textContent = 'rebuilding…';
+      var isPromote = (modalMode === 'promote');
+      modalOk.textContent = isPromote ? 'promoting…' : 'rebuilding…';
       modalOk.disabled = true;
       modalCancel.disabled = true;
       var svc = modalSvc;
-      readJson('/api/rebuild', {
+      var url  = isPromote ? '/api/promote' : '/api/rebuild';
+      var body = isPromote
+        ? JSON.stringify({ password: modalPwd.value })
+        : JSON.stringify({ service: svc, password: modalPwd.value });
+      readJson(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service: svc, password: modalPwd.value })
+        body: body
       }).then(function (result) {
         modalBusy = false;
         modalCancel.disabled = false;
@@ -495,7 +520,7 @@
           modalOk.disabled = false;
         } else {
           if (!out) {
-            modalOut.textContent = 'rebuild failed';
+            modalOut.textContent = isPromote ? 'promote failed' : 'rebuild failed';
             modalOut.style.display = 'block';
           }
           modalOk.textContent = 'Retry';
@@ -504,7 +529,7 @@
       }).catch(function () {
         modalBusy = false;
         modalCancel.disabled = false;
-        if (svc === 'api' || svc === 'all') {
+        if (isPromote || svc === 'api' || svc === 'all') {
           modalOut.textContent = '(connection closed — service restarted)';
           modalOut.style.display = 'block';
           modalOk.textContent = 'Close';
@@ -533,9 +558,10 @@
 
     document.getElementById('svc-grid').addEventListener('click', function (event) {
       var button = event.target.closest('[data-rebuild]');
-      if (!button) { return; }
-      openRebuildModal(button.getAttribute('data-rebuild'));
+      if (button) { openRebuildModal(button.getAttribute('data-rebuild')); return; }
     });
+
+    document.getElementById('btn-promote').addEventListener('click', openPromoteModal);
 
     document.getElementById('task-grid').addEventListener('click', function (event) {
       var button = event.target.closest('[data-task]');
@@ -569,9 +595,10 @@
     });
 
     function renderEnv(env) {
-      var badge  = document.getElementById('env-badge');
-      var toggle = document.getElementById('env-switch');
-      var label  = (env.label || '').toLowerCase();
+      var badge   = document.getElementById('env-badge');
+      var toggle  = document.getElementById('env-switch');
+      var promote = document.getElementById('btn-promote');
+      var label   = (env.label || '').toLowerCase();
       if (badge && label) {
         badge.textContent = label;
         badge.className = 'env-badge env-' + label;
@@ -582,6 +609,9 @@
         toggle.textContent = '→ ' + siblingLabel;
         toggle.href = env.sibling_url;
         toggle.style.display = 'inline';
+      }
+      if (promote && label === 'dev') {
+        promote.style.display = 'block';
       }
       var section = document.getElementById('ext-services-section');
       var grid    = document.getElementById('ext-services-grid');
