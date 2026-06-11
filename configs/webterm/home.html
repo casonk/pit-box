@@ -273,11 +273,18 @@
       <div class="section-count" id="rebuild-status"></div>
     </div>
     <div id="svc-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-      <button class="btn btn-gray" data-rebuild="ttyd"  style="margin:0">rebuild ttyd</button>
-      <button class="btn btn-gray" data-rebuild="api"   style="margin:0">rebuild api</button>
-      <button class="btn btn-gray" data-rebuild="caddy" style="margin:0">rebuild caddy</button>
-      <button class="btn btn-gray" data-rebuild="dns"   style="margin:0">rebuild dns</button>
-      <button class="btn btn-gray" data-rebuild="all"   style="margin:0;grid-column:1/-1">rebuild all</button>
+      <button class="btn btn-green" data-rebuild="smart" style="margin:0;grid-column:1/-1">deploy</button>
+      <details style="grid-column:1/-1;margin:0">
+        <summary style="cursor:pointer;color:#8b949e;font-size:12px;padding:4px 0;user-select:none">advanced</summary>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">
+          <button class="btn btn-gray" data-rebuild="ttyd"     style="margin:0">rebuild ttyd</button>
+          <button class="btn btn-gray" data-rebuild="api"      style="margin:0">rebuild api</button>
+          <button class="btn btn-gray" data-rebuild="caddy"    style="margin:0">rebuild caddy</button>
+          <button class="btn btn-gray" data-rebuild="dns"      style="margin:0">rebuild dns</button>
+          <button class="btn btn-gray" data-rebuild="all"      style="margin:0;grid-column:1/-1">rebuild all</button>
+          <button class="btn btn-gray" data-rebuild="activate" style="margin:0;grid-column:1/-1">activate (install scripts + sudoers)</button>
+        </div>
+      </details>
       <button class="btn btn-green" id="btn-promote" style="margin:0;grid-column:1/-1;display:none">promote to prod ↑</button>
     </div>
   </div>
@@ -529,7 +536,7 @@
       }).catch(function () {
         modalBusy = false;
         modalCancel.disabled = false;
-        if (isPromote || svc === 'api' || svc === 'all') {
+        if (isPromote || svc === 'api' || svc === 'all' || svc === 'smart') {
           modalOut.textContent = '(connection closed — service restarted)';
           modalOut.style.display = 'block';
           modalOk.textContent = 'Close';
