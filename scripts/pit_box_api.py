@@ -21,10 +21,18 @@ DEFAULT_PORT           = 7682
 DEFAULT_SESSION        = "pit-box"
 DEFAULT_REBUILD_SCRIPT = ""
 DEFAULT_SETTINGS_FILE  = ""
+DEFAULT_ENV_LABEL      = ""
+DEFAULT_SIBLING_URL    = ""
+DEFAULT_COCKPIT_URL    = ""
+DEFAULT_DESKTOP_URL    = ""
 
 SESSION        = DEFAULT_SESSION         # set in main()
 REBUILD_SCRIPT = DEFAULT_REBUILD_SCRIPT  # set in main()
-SETTINGS_FILE  = DEFAULT_SETTINGS_FILE  # set in main()
+SETTINGS_FILE  = DEFAULT_SETTINGS_FILE   # set in main()
+ENV_LABEL      = DEFAULT_ENV_LABEL       # set in main()
+SIBLING_URL    = DEFAULT_SIBLING_URL     # set in main()
+COCKPIT_URL    = DEFAULT_COCKPIT_URL     # set in main()
+DESKTOP_URL    = DEFAULT_DESKTOP_URL     # set in main()
 
 
 def tmux(*args) -> subprocess.CompletedProcess:
@@ -92,6 +100,23 @@ def get_state():
         "windows": list_windows(),
         "terminals": terminals,
         "live_terminals": len(terminals),
+    }
+
+
+def get_env() -> dict:
+    label = ENV_LABEL or ""
+    if label == "prod":
+        sibling_label = "dev"
+    elif label == "dev":
+        sibling_label = "prod"
+    else:
+        sibling_label = ""
+    services = {k: v for k, v in [("cockpit", COCKPIT_URL), ("desktop", DESKTOP_URL)] if v}
+    return {
+        "label": label,
+        "sibling_label": sibling_label,
+        "sibling_url": SIBLING_URL or "",
+        "services": services,
     }
 
 
@@ -225,6 +250,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == "/api/state":
             self._send(200, get_state())
             return
+        if self.path == "/api/env":
+            self._send(200, get_env())
+            return
         if self.path == "/api/windows":
             self._send(200, list_windows())
         else:
@@ -299,6 +327,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 def main():
     global SESSION, REBUILD_SCRIPT, SETTINGS_FILE
+    global ENV_LABEL, SIBLING_URL, COCKPIT_URL, DESKTOP_URL
     p = argparse.ArgumentParser()
     p.add_argument("--port",           type=int, default=DEFAULT_PORT)
     p.add_argument("--session",        default=DEFAULT_SESSION)
@@ -306,13 +335,25 @@ def main():
                    help="Absolute path to rebuild_webservices.sh")
     p.add_argument("--settings-file",  default=DEFAULT_SETTINGS_FILE,
                    help="Settings file passed to rebuild_webservices.sh (e.g. settings.dev.env)")
+    p.add_argument("--env-label",      default=DEFAULT_ENV_LABEL,
+                   help="Environment label shown in the homepage badge (e.g. prod or dev)")
+    p.add_argument("--sibling-url",    default=DEFAULT_SIBLING_URL,
+                   help="Homepage URL of the sibling environment for the env toggle")
+    p.add_argument("--cockpit-url",    default=DEFAULT_COCKPIT_URL,
+                   help="Full URL to the Cockpit web UI (shown on homepage if set)")
+    p.add_argument("--desktop-url",    default=DEFAULT_DESKTOP_URL,
+                   help="Full URL to the Guacamole desktop UI (shown on homepage if set)")
     args = p.parse_args()
     SESSION        = args.session
     REBUILD_SCRIPT = args.rebuild_script
     SETTINGS_FILE  = args.settings_file
+    ENV_LABEL      = args.env_label
+    SIBLING_URL    = args.sibling_url
+    COCKPIT_URL    = args.cockpit_url
+    DESKTOP_URL    = args.desktop_url
 
     server = http.server.HTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"pit-box API listening on 127.0.0.1:{args.port} (session={SESSION})")
+    print(f"pit-box API listening on 127.0.0.1:{args.port} (session={SESSION}, env={ENV_LABEL or 'unset'})")
     server.serve_forever()
 
 

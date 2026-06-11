@@ -155,9 +155,19 @@ rebuild_dns() {
 }
 
 rebuild_cockpit() {
+  local caddy_src="$ROOT_DIR/build/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
+  local caddyfile="/etc/caddy/Caddyfile"
+  if [[ -f "$caddy_src" ]]; then
+    mkdir -p /etc/caddy/Caddyfile.d
+    cp "$caddy_src" "/etc/caddy/Caddyfile.d/pit-box-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
+    grep -q 'import Caddyfile.d' "$caddyfile" || \
+      printf '\nimport Caddyfile.d/*.caddy\n' >> "$caddyfile"
+    caddy validate --config "$caddyfile"
+    systemctl reload caddy
+  fi
   systemctl enable --now cockpit.socket
   systemctl restart cockpit.socket
-  echo "[ok] cockpit rebuilt"
+  echo "[ok] cockpit${WEBTERM_ENV_SUFFIX} rebuilt"
 }
 
 rebuild_rdp() {
@@ -166,9 +176,9 @@ rebuild_rdp() {
 }
 
 rebuild_desktop_web() {
-  "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"
-  "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"
-  echo "[ok] desktop-web rebuilt"
+  "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh" --settings "$SETTINGS_FILE"
+  "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh" --settings "$SETTINGS_FILE"
+  echo "[ok] desktop-web${WEBTERM_ENV_SUFFIX} rebuilt"
 }
 
 for svc in "${SERVICES[@]}"; do

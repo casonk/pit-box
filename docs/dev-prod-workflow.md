@@ -89,6 +89,44 @@ should be the same commit you validated in dev.
 | Caddy drop-in | `pit-box-webterm.caddy` | `pit-box-webterm-dev.caddy` |
 | dnsmasq conf | `pit-box-vpn.conf` | `pit-box-dev-vpn.conf` |
 
+## Homepage environment toggle
+
+The homepage automatically fetches `/api/env` on load. If `WEBTERM_ENV_LABEL` is
+set, a colored badge appears in the header (`PROD` in green, `DEV` in amber).
+If `WEBTERM_SIBLING_URL` is set, a "→ dev" or "→ prod" link appears next to the
+badge and navigates directly to the other environment's homepage.
+
+If `COCKPIT_ENABLED=true` or `REMOTE_DESKTOP_WEB_ENABLED=true`, the homepage
+shows an **Open Cockpit** or **Open Desktop** button pointing at the URLs
+rendered into the API service at `render_configs.sh` time. These buttons reflect
+the current environment's hostnames automatically.
+
+## Cockpit notes
+
+Cockpit is a single system-level service (`cockpit.socket`). Running two isolated
+Cockpit instances on the same machine is not supported. The dev/prod distinction
+for Cockpit is limited to:
+
+- A different Caddy virtual-host hostname (e.g. `cockpit-dev.homeserver.vpn` vs
+  `cockpit.homeserver.vpn`) both routing to the same `localhost:9090` backend.
+- A separate dnsmasq DNS record for the dev hostname.
+
+Set `COCKPIT_PORT=9090` in both envs (same port, different hostname only).
+
+## Desktop-web (Guacamole) notes
+
+Guacamole runs as Podman containers. A true dev instance requires a different
+port in `settings.dev.env`:
+
+```bash
+REMOTE_DESKTOP_WEB_PORT=8091
+REMOTE_DESKTOP_WEB_HOSTNAME=remote-desktop-dev.homeserver.vpn
+```
+
+With `WEBTERM_ENV_SUFFIX=-dev`, container names and quadlet files become
+`pit-box-guacamole-dev`, `pit-box-guacd-dev`, and the Caddy drop-in becomes
+`pit-box-remote-desktop-dev.caddy` — fully isolated from prod.
+
 ## Adding more environments
 
 Add a `settings.qa.env` with `WEBTERM_ENV_SUFFIX=-qa` and a distinct port and
