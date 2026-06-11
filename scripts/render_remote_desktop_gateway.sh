@@ -3,8 +3,17 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SETTINGS_FILE="$ROOT_DIR/settings.env"
-BUILD_DIR="$ROOT_DIR/build/remote-desktop"
-GUAC_HOME="$BUILD_DIR/guacamole-home"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --settings)
+      SETTINGS_FILE="$2"
+      [[ "$SETTINGS_FILE" = /* ]] || SETTINGS_FILE="$ROOT_DIR/$SETTINGS_FILE"
+      shift 2
+      ;;
+    *) echo "Unknown argument: $1" >&2; exit 1;;
+  esac
+done
 
 # shellcheck source=/dev/null
 source "$ROOT_DIR/scripts/site_registry.sh"
@@ -24,9 +33,13 @@ xml_escape() {
   printf '%s' "$value"
 }
 
-[[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings.env" >&2; exit 1; }
+[[ -f "$SETTINGS_FILE" ]] || { echo "Missing settings file: $SETTINGS_FILE" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
+
+WEBTERM_ENV_SUFFIX="${WEBTERM_ENV_SUFFIX:-}"
+BUILD_DIR="$ROOT_DIR/build/remote-desktop${WEBTERM_ENV_SUFFIX}"
+GUAC_HOME="$BUILD_DIR/guacamole-home"
 
 : "${REMOTE_DESKTOP_WEB_ENABLED:?Missing REMOTE_DESKTOP_WEB_ENABLED}"
 
@@ -72,7 +85,7 @@ mkdir -p "$GUAC_HOME"
 chmod 700 "$BUILD_DIR" "$GUAC_HOME"
 
 cat > "$GUAC_HOME/guacamole.properties" <<EOF
-guacd-hostname: pit-box-guacd
+guacd-hostname: pit-box-guacd${WEBTERM_ENV_SUFFIX}
 guacd-port: 4822
 user-mapping: /etc/guacamole/user-mapping.xml
 EOF
@@ -118,20 +131,20 @@ services:
       - "127.0.0.1:${REMOTE_DESKTOP_WEB_PORT}:8080"
 EOF
 
-cat > "$BUILD_DIR/pit-box-guacamole.network" <<EOF
+cat > "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network" <<EOF
 [Network]
-NetworkName=pit-box-guacamole
+NetworkName=pit-box-guacamole${WEBTERM_ENV_SUFFIX}
 EOF
 
-cat > "$BUILD_DIR/pit-box-guacd.container" <<EOF
+cat > "$BUILD_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container" <<EOF
 [Unit]
-Description=Guacamole Daemon (guacd)
+Description=Guacamole Daemon (guacd)${WEBTERM_ENV_SUFFIX}
 After=network-online.target
 
 [Container]
 Image=${REMOTE_DESKTOP_GUACD_IMAGE}
-ContainerName=pit-box-guacd
-Network=pit-box-guacamole.network
+ContainerName=pit-box-guacd${WEBTERM_ENV_SUFFIX}
+Network=pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network
 
 [Service]
 Restart=on-failure
@@ -141,22 +154,22 @@ TimeoutStartSec=60
 WantedBy=multi-user.target
 EOF
 
-cat > "$BUILD_DIR/pit-box-guacamole.container" <<EOF
+cat > "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container" <<EOF
 [Unit]
-Description=Apache Guacamole
-Requires=pit-box-guacd.service
-After=pit-box-guacd.service network-online.target
+Description=Apache Guacamole${WEBTERM_ENV_SUFFIX}
+Requires=pit-box-guacd${WEBTERM_ENV_SUFFIX}.service
+After=pit-box-guacd${WEBTERM_ENV_SUFFIX}.service network-online.target
 
 [Container]
 Image=${REMOTE_DESKTOP_GUACAMOLE_IMAGE}
-ContainerName=pit-box-guacamole
-Environment=GUACD_HOSTNAME=pit-box-guacd
+ContainerName=pit-box-guacamole${WEBTERM_ENV_SUFFIX}
+Environment=GUACD_HOSTNAME=pit-box-guacd${WEBTERM_ENV_SUFFIX}
 Environment=GUACD_PORT=4822
 Environment=GUACAMOLE_HOME=/etc/guacamole
 Environment=WEBAPP_CONTEXT=ROOT
-Volume=/etc/pit-box/remote-desktop/guacamole-home:/etc/guacamole:ro,Z
+Volume=/etc/pit-box${WEBTERM_ENV_SUFFIX}/remote-desktop/guacamole-home:/etc/guacamole:ro,Z
 PublishPort=127.0.0.1:${REMOTE_DESKTOP_WEB_PORT}:8080
-Network=pit-box-guacamole.network
+Network=pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network
 
 [Service]
 Restart=on-failure
@@ -166,7 +179,7 @@ TimeoutStartSec=120
 WantedBy=multi-user.target
 EOF
 
-cat > "$BUILD_DIR/caddy-guacamole.caddy" <<EOF
+cat > "$BUILD_DIR/caddy-guacamole${WEBTERM_ENV_SUFFIX}.caddy" <<EOF
 https://${REMOTE_DESKTOP_WEB_HOSTNAME} {
 	tls ${CADDY_CERTS_DIR}/server.crt ${CADDY_CERTS_DIR}/server.key {
 		client_auth {
@@ -186,12 +199,12 @@ https://${REMOTE_DESKTOP_WEB_HOSTNAME} {
 }
 EOF
 
-echo "Rendered build/remote-desktop/docker-compose.yml"
-echo "Rendered build/remote-desktop/guacamole-home/guacamole.properties"
-echo "Rendered build/remote-desktop/guacamole-home/user-mapping.xml"
-echo "Rendered build/remote-desktop/caddy-guacamole.caddy"
-echo "Rendered build/remote-desktop/pit-box-guacamole.network"
-echo "Rendered build/remote-desktop/pit-box-guacd.container"
-echo "Rendered build/remote-desktop/pit-box-guacamole.container"
-echo "Safari URL: https://${REMOTE_DESKTOP_WEB_HOSTNAME}/"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/docker-compose.yml"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/guacamole-home/guacamole.properties"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/guacamole-home/user-mapping.xml"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/caddy-guacamole${WEBTERM_ENV_SUFFIX}.caddy"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container"
+echo "Desktop URL: https://${REMOTE_DESKTOP_WEB_HOSTNAME}/"
 echo "Credential source: ${REMOTE_DESKTOP_WEB_PASSWORD_SOURCE:-settings.env}"
