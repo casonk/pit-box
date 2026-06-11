@@ -170,7 +170,7 @@ body.pb-sel-mode .xterm canvas {
   border: 1px solid #30363d;
   border-radius: 8px;
   font-family: ui-monospace, monospace;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.4;
   user-select: text;
   -webkit-user-select: text;
@@ -206,8 +206,8 @@ body.pb-sel-mode .xterm canvas {
   }
   #pb-toolbar .pb-row {
     flex: 0 0 auto;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 3px;
     overflow: visible;
     border-right: 1px solid #30363d;

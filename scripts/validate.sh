@@ -153,11 +153,11 @@ if [[ -f "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh" ]]; then
     echo "[invalid] scripts/install_remote_desktop_gateway.sh does not align Guacamole config ownership with the container UID/GID" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q 'podman logs --tail=80 pit-box-guacamole' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
+  if ! grep -q 'podman logs --tail=80 "$GUACAMOLE_CONTAINER"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
     echo "[invalid] scripts/install_remote_desktop_gateway.sh does not print Guacamole logs on readiness failure" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q 'systemctl start pit-box-guacamole.service' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
+  if ! grep -q 'GUACAMOLE_SERVICE="pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh" || ! grep -q 'systemctl start "$GUACAMOLE_SERVICE"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
     echo "[invalid] scripts/install_remote_desktop_gateway.sh does not start the Quadlet Guacamole service" >&2
     errors=$((errors + 1))
   fi
@@ -336,6 +336,10 @@ if [[ -f "$ROOT_DIR/scripts/inject_toolbar.py" ]]; then
     echo "[invalid] scripts/inject_toolbar.py does not include the guarded current-window kill button" >&2
     errors=$((errors + 1))
   fi
+  if ! grep -q '#pb-toolbar .pb-row' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q 'flex-direction: row;' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not keep landscape toolbar button groups horizontal" >&2
+    errors=$((errors + 1))
+  fi
   if ! grep -q 'pb-confirm' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not visibly confirm the kill button before executing" >&2
     errors=$((errors + 1))
@@ -392,11 +396,11 @@ if [[ -f "$ROOT_DIR/scripts/inject_toolbar.py" ]]; then
     echo "[invalid] scripts/inject_toolbar.py still auto-selects the full clipboard textarea and can trigger mobile zoom" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q -- '--pb-toolbar-h: 260px' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+  if ! grep -q -- '--pb-toolbar-h: 204px' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not reserve height for the three-row toolbar" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q '@media (orientation: landscape)' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q -- '--pb-toolbar-h: 74px' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+  if ! grep -q '@media (orientation: landscape)' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q -- '--pb-toolbar-h: 52px' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not compact the WebTerm toolbar in landscape" >&2
     errors=$((errors + 1))
   fi
@@ -518,6 +522,10 @@ if [[ -f "$ROOT_DIR/configs/webterm/index.html" ]]; then
     echo "[invalid] configs/webterm/index.html fallback does not include the guarded current-window kill button" >&2
     errors=$((errors + 1))
   fi
+  if ! grep -q '#pb-toolbar .pb-row' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q 'flex-direction: row;' "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not keep landscape toolbar button groups horizontal" >&2
+    errors=$((errors + 1))
+  fi
   if ! grep -q 'pb-confirm' "$ROOT_DIR/configs/webterm/index.html"; then
     echo "[invalid] configs/webterm/index.html fallback does not visibly confirm the kill button before executing" >&2
     errors=$((errors + 1))
@@ -574,11 +582,11 @@ if [[ -f "$ROOT_DIR/configs/webterm/index.html" ]]; then
     echo "[invalid] configs/webterm/index.html fallback still auto-selects the full clipboard textarea and can trigger mobile zoom" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q -- '--pb-toolbar-h: 260px' "$ROOT_DIR/configs/webterm/index.html"; then
+  if ! grep -q -- '--pb-toolbar-h: 204px' "$ROOT_DIR/configs/webterm/index.html"; then
     echo "[invalid] configs/webterm/index.html fallback does not reserve height for the three-row toolbar" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q '@media (orientation: landscape)' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q -- '--pb-toolbar-h: 74px' "$ROOT_DIR/configs/webterm/index.html"; then
+  if ! grep -q '@media (orientation: landscape)' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q -- '--pb-toolbar-h: 52px' "$ROOT_DIR/configs/webterm/index.html"; then
     echo "[invalid] configs/webterm/index.html fallback does not compact the WebTerm toolbar in landscape" >&2
     errors=$((errors + 1))
   fi
