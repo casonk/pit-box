@@ -6,6 +6,15 @@ SETTINGS_FILE="$ROOT_DIR/settings.env"
 SECRETS_DIR="$ROOT_DIR/secrets"
 BUILD_DIR="$ROOT_DIR/build"
 
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --settings) SETTINGS_FILE="$2"; shift 2;;
+    *) echo "Unknown argument: $1" >&2; exit 1;;
+  esac
+done
+# Resolve to absolute path so systemd ExecStart lines use a stable path.
+[[ "$SETTINGS_FILE" = /* ]] || SETTINGS_FILE="$ROOT_DIR/$SETTINGS_FILE"
+
 # shellcheck source=/dev/null
 source "$ROOT_DIR/scripts/site_registry.sh"
 
@@ -27,6 +36,9 @@ require_file "$SECRETS_DIR/client.pub"
 
 # shellcheck source=/dev/null
 source "$SETTINGS_FILE"
+
+WEBTERM_ENV_SUFFIX="${WEBTERM_ENV_SUFFIX:-}"
+WEBTERM_TMUX_SESSION="${WEBTERM_TMUX_SESSION:-pit-box}"
 
 PRIVATE_DNS_REQUIRED=false
 if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
@@ -135,9 +147,9 @@ if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
   : "${CADDY_CERTS_DIR:?WEBTERM_ENABLED=true but CADDY_CERTS_DIR is not set}"
   WEBTERM_API_PORT=$((WEBTERM_PORT + 1))
   mkdir -p "$BUILD_DIR/webterm"
-  cat > "$BUILD_DIR/webterm/ttyd.service" <<EOF
+  cat > "$BUILD_DIR/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service" <<EOF
 [Unit]
-Description=ttyd - Web Terminal over WireGuard VPN
+Description=ttyd - Web Terminal over WireGuard VPN${WEBTERM_ENV_SUFFIX}
 Documentation=https://github.com/tsl0922/ttyd
 After=network-online.target wg-quick@${WG_INTERFACE}.service
 Wants=network-online.target
@@ -148,34 +160,34 @@ User=${WEBTERM_USER}
 # Loopback-only: Caddy proxies from the VPN interface, ttyd is not directly reachable.
 # ttyd_session.sh creates a grouped tmux session per connection so each browser tab
 # tracks its active window independently.
-ExecStart=/usr/bin/ttyd --writable --interface 127.0.0.1 --port ${WEBTERM_PORT} --ping-interval 30 /etc/pit-box/ttyd_session.sh
+ExecStart=/usr/bin/ttyd --writable --interface 127.0.0.1 --port ${WEBTERM_PORT} --ping-interval 30 /etc/pit-box${WEBTERM_ENV_SUFFIX}/ttyd_session.sh ${WEBTERM_TMUX_SESSION}
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  echo "Rendered build/webterm/ttyd.service"
+  echo "Rendered build/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service"
 
-  cat > "$BUILD_DIR/webterm/pit-box-api.service" <<EOF
+  cat > "$BUILD_DIR/webterm/pit-box-api${WEBTERM_ENV_SUFFIX}.service" <<EOF
 [Unit]
-Description=pit-box web terminal window API
-After=network-online.target ttyd.service
+Description=pit-box web terminal window API${WEBTERM_ENV_SUFFIX}
+After=network-online.target ttyd${WEBTERM_ENV_SUFFIX}.service
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=${WEBTERM_USER}
-ExecStart=/usr/bin/python3 /etc/pit-box/pit_box_api.py --port ${WEBTERM_API_PORT} --session pit-box
+ExecStart=/usr/bin/python3 /etc/pit-box${WEBTERM_ENV_SUFFIX}/pit_box_api.py --port ${WEBTERM_API_PORT} --session ${WEBTERM_TMUX_SESSION} --rebuild-script ${ROOT_DIR}/scripts/rebuild_webservices.sh --settings-file ${SETTINGS_FILE}
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  echo "Rendered build/webterm/pit-box-api.service"
+  echo "Rendered build/webterm/pit-box-api${WEBTERM_ENV_SUFFIX}.service"
 
-  cat > "$BUILD_DIR/webterm/caddy-webterm.caddy" <<EOF
+  cat > "$BUILD_DIR/webterm/caddy-webterm${WEBTERM_ENV_SUFFIX}.caddy" <<EOF
 https://${WEBTERM_HOSTNAME} {
 	tls ${CADDY_CERTS_DIR}/server.crt ${CADDY_CERTS_DIR}/server.key {
 		client_auth {
@@ -194,7 +206,7 @@ https://${WEBTERM_HOSTNAME} {
 
 	@home path /
 	handle @home {
-		root * /etc/pit-box/webterm
+		root * /etc/pit-box${WEBTERM_ENV_SUFFIX}/webterm
 		rewrite * /home.html
 		file_server
 	}
@@ -206,7 +218,7 @@ https://${WEBTERM_HOSTNAME} {
 
 	@term path /term
 	handle @term {
-		root * /etc/pit-box/webterm
+		root * /etc/pit-box${WEBTERM_ENV_SUFFIX}/webterm
 		rewrite * /index.html
 		file_server
 	}
@@ -227,7 +239,7 @@ https://${WEBTERM_HOSTNAME} {
 	}
 }
 EOF
-  echo "Rendered build/webterm/caddy-webterm.caddy"
+  echo "Rendered build/webterm/caddy-webterm${WEBTERM_ENV_SUFFIX}.caddy"
 
   DNS_ADDRESSES="address=/${WEBTERM_HOSTNAME}/${WG_SERVER_TUNNEL_IP}"
   if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
@@ -241,7 +253,7 @@ EOF
     DNS_ADDRESSES="${DNS_ADDRESSES}"$'\n'"address=/${REMOTE_DESKTOP_WEB_HOSTNAME}/${WG_SERVER_TUNNEL_IP}"
   fi
 
-  cat > "$BUILD_DIR/webterm/dnsmasq-vpn.conf" <<EOF
+  cat > "$BUILD_DIR/webterm/dnsmasq-vpn${WEBTERM_ENV_SUFFIX}.conf" <<EOF
 interface=${WG_INTERFACE}
 bind-interfaces
 listen-address=${WG_SERVER_TUNNEL_IP}
@@ -249,5 +261,5 @@ no-dhcp-interface=${WG_INTERFACE}
 server=${LAN_DNS_SERVER}
 ${DNS_ADDRESSES}
 EOF
-  echo "Rendered build/webterm/dnsmasq-vpn.conf"
+  echo "Rendered build/webterm/dnsmasq-vpn${WEBTERM_ENV_SUFFIX}.conf"
 fi

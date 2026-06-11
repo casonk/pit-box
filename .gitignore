@@ -1,4 +1,5 @@
 settings.env
+settings.dev.env
 config/auto-pass.ini
 secrets/
 build/

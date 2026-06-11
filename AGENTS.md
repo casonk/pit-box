@@ -130,6 +130,20 @@ Use commit messages of the form:
 
 If a human explicitly asks for a different topology, preserve their request but document the tradeoff in the README and architecture docs.
 
+## Dev / Prod Deployment Workflow
+
+All source changes must be tested in the dev instance before being promoted to
+production. See `docs/dev-prod-workflow.md` for full setup and day-to-day steps.
+
+**Rule**: never deploy to production (`settings.env`, no `--settings` flag) from an
+untested branch. The commit deployed to prod must already have passed in dev.
+
+Quick reference:
+- Render dev configs: `scripts/render_configs.sh --settings settings.dev.env`
+- Deploy to dev: `sudo scripts/rebuild_webservices.sh --settings settings.dev.env [service]`
+- Render prod configs: `scripts/render_configs.sh`
+- Deploy to prod: `sudo scripts/rebuild_webservices.sh [service]`
+
 ## Sudo Boundary
 
 Agents will never be able to run `sudo` commands in this environment. If a task requires elevated system changes, make the repo edits and run the validation that can be done without `sudo`, then give the user the exact command(s) to run.
