@@ -122,7 +122,7 @@ def get_env() -> dict:
 
 
 def rebuild_service(service: str, password: str = "") -> dict:
-    _ALLOWED = frozenset({"ttyd", "api", "dns", "caddy", "cockpit", "rdp", "desktop-web", "all"})
+    _ALLOWED = frozenset({"smart", "ttyd", "api", "dns", "caddy", "cockpit", "rdp", "desktop-web", "all", "activate"})
     if service not in _ALLOWED:
         return {"ok": False, "error": f"unknown service: {service!r}"}
     if not REBUILD_SCRIPT:
