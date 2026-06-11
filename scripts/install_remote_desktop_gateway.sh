@@ -137,6 +137,15 @@ else
   systemctl reload caddy
 fi
 
+# Write the sudo wrapper resolved to this repo — no hardcoded path in source control.
+# shellcheck disable=SC2016
+cat > /usr/local/bin/pit-box-rebuild-guacamole << EOF
+#!/usr/bin/env bash
+set -euo pipefail
+exec "${ROOT_DIR}/scripts/rebuild_guacamole.sh" "\$@"
+EOF
+chmod 0755 /usr/local/bin/pit-box-rebuild-guacamole
+
 echo "Safari remote desktop gateway installed."
 echo "  https://${REMOTE_DESKTOP_WEB_HOSTNAME:-<remote-desktop-hostname>}/"
 echo "Run scripts/install_remote_desktop.sh too so the xrdp backend is available."

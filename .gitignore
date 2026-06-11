@@ -1,6 +1,7 @@
 settings.env
 settings.dev.env
 config/auto-pass.ini
+config/scripts/
 secrets/
 build/
 dist/
