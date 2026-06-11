@@ -4,20 +4,27 @@ Minimal HTTP API for pit-box web terminal state and window management.
 Runs on loopback only; Caddy proxies /api/* from the mTLS VPN endpoint.
 
 Endpoints:
-  GET    /api/state          - combined tmux windows + live browser terminals
-  GET    /api/windows        - list tmux windows
+  GET    /api/state            - combined tmux windows + live browser terminals
+  GET    /api/windows          - list tmux windows
   POST   /api/terminals/scroll - scroll attached WebTerm tmux copy-mode panes
-  DELETE /api/windows/<n>    - kill tmux window N
+  POST   /api/rebuild          - run rebuild_webservices.sh via sudo -S (password in body)
+  POST   /api/task             - run a no-sudo pit-box script (task name in body)
+  DELETE /api/windows/<n>      - kill tmux window N
 """
 import argparse
 import http.server
 import json
+import os
 import subprocess
 
-DEFAULT_PORT    = 7682
-DEFAULT_SESSION = "pit-box"
+DEFAULT_PORT           = 7682
+DEFAULT_SESSION        = "pit-box"
+DEFAULT_REBUILD_SCRIPT = ""
+DEFAULT_SETTINGS_FILE  = ""
 
-SESSION = DEFAULT_SESSION  # set in main()
+SESSION        = DEFAULT_SESSION         # set in main()
+REBUILD_SCRIPT = DEFAULT_REBUILD_SCRIPT  # set in main()
+SETTINGS_FILE  = DEFAULT_SETTINGS_FILE  # set in main()
 
 
 def tmux(*args) -> subprocess.CompletedProcess:
@@ -88,9 +95,61 @@ def get_state():
     }
 
 
+def rebuild_service(service: str, password: str = "") -> dict:
+    _ALLOWED = frozenset({"ttyd", "api", "dns", "caddy", "cockpit", "rdp", "desktop-web", "all"})
+    if service not in _ALLOWED:
+        return {"ok": False, "error": f"unknown service: {service!r}"}
+    if not REBUILD_SCRIPT:
+        return {"ok": False, "error": "rebuild script not configured (--rebuild-script)"}
+    cmd = ["sudo", "-S", "--", REBUILD_SCRIPT]
+    if SETTINGS_FILE:
+        cmd += ["--settings", SETTINGS_FILE]
+    if service != "all":
+        cmd.append(service)
+    try:
+        r = subprocess.run(
+            cmd,
+            input=password + "\n",
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "rebuild timed out (120 s)"}
+    except OSError as exc:
+        return {"ok": False, "error": str(exc)}
+    combined = "\n".join(filter(None, [r.stdout.strip(), r.stderr.strip()]))
+    lines = combined.splitlines()
+    return {"ok": r.returncode == 0, "output": "\n".join(lines[-30:])}
+
+
 def kill_window(index: int) -> bool:
     r = tmux("kill-window", "-t", f"{SESSION}:{index}")
     return r.returncode == 0
+
+
+_TASK_SCRIPTS: dict[str, str] = {
+    "validate":       "validate.sh",
+    "render-configs": "render_configs.sh",
+    "package-client": "package_client.sh",
+}
+
+
+def run_task(task: str) -> dict:
+    if task not in _TASK_SCRIPTS:
+        return {"ok": False, "error": f"unknown task: {task!r}"}
+    if not REBUILD_SCRIPT:
+        return {"ok": False, "error": "scripts directory not configured (--rebuild-script)"}
+    script = os.path.join(os.path.dirname(REBUILD_SCRIPT), _TASK_SCRIPTS[task])
+    try:
+        r = subprocess.run([script], capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "task timed out (60 s)"}
+    except OSError as exc:
+        return {"ok": False, "error": str(exc)}
+    combined = "\n".join(filter(None, [r.stdout.strip(), r.stderr.strip()]))
+    lines = combined.splitlines()
+    return {"ok": r.returncode == 0, "output": "\n".join(lines[-30:])}
 
 
 def pane_state(session_name: str) -> dict:
@@ -201,6 +260,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
             result = scroll_terminals(direction, count, bool(payload.get("first", False)))
             self._send(200 if result["ok"] else 500, result)
             return
+        if self.path == "/api/rebuild":
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                self._send(400, {"error": "invalid json body"})
+                return
+            service = str(payload.get("service", ""))
+            password = str(payload.get("password", ""))
+            result = rebuild_service(service, password)
+            self._send(200, result)
+            return
+        if self.path == "/api/task":
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                self._send(400, {"error": "invalid json body"})
+                return
+            task = str(payload.get("task", ""))
+            result = run_task(task)
+            self._send(200, result)
+            return
         self._send(404, {"error": "not found"})
 
     def do_DELETE(self):
@@ -220,12 +298,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 def main():
-    global SESSION
+    global SESSION, REBUILD_SCRIPT, SETTINGS_FILE
     p = argparse.ArgumentParser()
-    p.add_argument("--port",    type=int, default=DEFAULT_PORT)
-    p.add_argument("--session", default=DEFAULT_SESSION)
+    p.add_argument("--port",           type=int, default=DEFAULT_PORT)
+    p.add_argument("--session",        default=DEFAULT_SESSION)
+    p.add_argument("--rebuild-script", default=DEFAULT_REBUILD_SCRIPT,
+                   help="Absolute path to rebuild_webservices.sh")
+    p.add_argument("--settings-file",  default=DEFAULT_SETTINGS_FILE,
+                   help="Settings file passed to rebuild_webservices.sh (e.g. settings.dev.env)")
     args = p.parse_args()
-    SESSION = args.session
+    SESSION        = args.session
+    REBUILD_SCRIPT = args.rebuild_script
+    SETTINGS_FILE  = args.settings_file
 
     server = http.server.HTTPServer(("127.0.0.1", args.port), Handler)
     print(f"pit-box API listening on 127.0.0.1:{args.port} (session={SESSION})")

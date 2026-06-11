@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=WEBTERM_USER
-ExecStart=/usr/bin/python3 /etc/pit-box/pit_box_api.py --port WEBTERM_API_PORT --session pit-box
+ExecStart=/usr/bin/python3 /etc/pit-box/pit_box_api.py --port WEBTERM_API_PORT --session pit-box --rebuild-script /path/to/pit-box/scripts/rebuild_webservices.sh
 Restart=on-failure
 RestartSec=5
 
