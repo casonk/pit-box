@@ -1,0 +1,7 @@
+#!/bin/bash
+# Wrapper used by clockwork-web (via sudo) to rebuild the Guacamole gateway.
+# Install (as root):
+#   sudo cp config/scripts/pit-box-rebuild-guacamole /usr/local/bin/pit-box-rebuild-guacamole
+#   sudo chmod 755 /usr/local/bin/pit-box-rebuild-guacamole
+PIT_BOX_DIR="/mnt/4tb-m2/git/util-repos/pit-box"
+exec "$PIT_BOX_DIR/scripts/rebuild_guacamole.sh"
