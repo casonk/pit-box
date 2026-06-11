@@ -39,6 +39,9 @@ fi
 
 GUACAMOLE_CONTAINER_UID="${REMOTE_DESKTOP_GUACAMOLE_UID:-1001}"
 GUACAMOLE_CONTAINER_GID="${REMOTE_DESKTOP_GUACAMOLE_GID:-1001}"
+GUACAMOLE_SERVICE="pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service"
+GUACD_SERVICE="pit-box-guacd${WEBTERM_ENV_SUFFIX}.service"
+GUACAMOLE_CONTAINER="pit-box-guacamole${WEBTERM_ENV_SUFFIX}"
 REMOTE_DESKTOP_WEB_INGRESS="$(
   resolve_registry_field "$ROOT_DIR" "pit-box-remote-desktop" ingress 2>/dev/null || true
 )"
@@ -88,7 +91,7 @@ for ctr in remote-desktop_guacamole_1 remote-desktop_guacd_1; do
 done
 
 # Stop existing quadlet services before replacing their unit files.
-for svc in "pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service" "pit-box-guacd${WEBTERM_ENV_SUFFIX}.service"; do
+for svc in "$GUACAMOLE_SERVICE" "$GUACD_SERVICE"; do
   systemctl is-active "$svc" &>/dev/null && systemctl stop "$svc" || true
 done
 
@@ -98,7 +101,7 @@ install -m 644 "$BUILD_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container"     "$Q
 install -m 644 "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container" "$QUADLET_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container"
 
 systemctl daemon-reload
-systemctl start "pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service"
+systemctl start "$GUACAMOLE_SERVICE"
 
 if command -v curl >/dev/null 2>&1; then
   ready=false
@@ -112,7 +115,7 @@ if command -v curl >/dev/null 2>&1; then
   if [[ "$ready" != "true" ]]; then
     echo "Guacamole did not answer on 127.0.0.1:${REMOTE_DESKTOP_WEB_PORT} within 60 seconds." >&2
     echo "Recent container logs:" >&2
-    podman logs --tail=80 "pit-box-guacamole${WEBTERM_ENV_SUFFIX}" >&2 || true
+    podman logs --tail=80 "$GUACAMOLE_CONTAINER" >&2 || true
     exit 1
   fi
 fi
