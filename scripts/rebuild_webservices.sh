@@ -181,8 +181,76 @@ rebuild_desktop_web() {
   echo "[ok] desktop-web${WEBTERM_ENV_SUFFIX} rebuilt"
 }
 
+rebuild_activate() {
+  "$ROOT_DIR/../clockwork/scripts/activate.sh"
+  echo "[ok] activate complete"
+}
+
+rebuild_smart() {
+  "$ROOT_DIR/scripts/render_configs.sh" --settings "$SETTINGS_FILE"
+
+  local need_ttyd=0 need_api=0 need_caddy=0 need_dns=0 need_cockpit=0 need_desktop=0
+
+  if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
+    diff -q "$ROOT_DIR/configs/webterm/home.html" \
+            "${INSTALL_BASE}/webterm/home.html" >/dev/null 2>&1 || need_ttyd=1
+    diff -q "$ROOT_DIR/scripts/ttyd_session.sh" \
+            "${INSTALL_BASE}/ttyd_session.sh" >/dev/null 2>&1   || need_ttyd=1
+    diff -q "$ROOT_DIR/build/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service" \
+            "/etc/systemd/system/ttyd${WEBTERM_ENV_SUFFIX}.service" >/dev/null 2>&1 || need_ttyd=1
+
+    if [[ $need_ttyd -eq 0 ]]; then
+      diff -q "$ROOT_DIR/scripts/pit_box_api.py" \
+              "${INSTALL_BASE}/pit_box_api.py" >/dev/null 2>&1 || need_api=1
+      diff -q "$ROOT_DIR/build/webterm/pit-box-api${WEBTERM_ENV_SUFFIX}.service" \
+              "/etc/systemd/system/pit-box-api${WEBTERM_ENV_SUFFIX}.service" >/dev/null 2>&1 || need_api=1
+    fi
+
+    local caddy_dst="/etc/caddy/Caddyfile.d/pit-box-webterm${WEBTERM_ENV_SUFFIX}.caddy"
+    [[ -f "$caddy_dst" ]] && {
+      diff -q "$ROOT_DIR/build/webterm/caddy-webterm${WEBTERM_ENV_SUFFIX}.caddy" \
+              "$caddy_dst" >/dev/null 2>&1 || need_caddy=1
+    }
+
+    local dns_dst="/etc/dnsmasq.d/pit-box${WEBTERM_ENV_SUFFIX}-vpn.conf"
+    [[ -f "$dns_dst" ]] && {
+      diff -q "$ROOT_DIR/build/webterm/dnsmasq-vpn${WEBTERM_ENV_SUFFIX}.conf" \
+              "$dns_dst" >/dev/null 2>&1 || need_dns=1
+    }
+  fi
+
+  if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
+    local cockpit_src="$ROOT_DIR/build/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
+    local cockpit_dst="/etc/caddy/Caddyfile.d/pit-box-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
+    [[ -f "$cockpit_src" && -f "$cockpit_dst" ]] && {
+      diff -q "$cockpit_src" "$cockpit_dst" >/dev/null 2>&1 || need_cockpit=1
+    }
+  fi
+
+  if [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]]; then
+    local rdw_src="$ROOT_DIR/build/remote-desktop${WEBTERM_ENV_SUFFIX}/caddy-guacamole${WEBTERM_ENV_SUFFIX}.caddy"
+    local rdw_dst="/etc/caddy/Caddyfile.d/pit-box-remote-desktop${WEBTERM_ENV_SUFFIX}.caddy"
+    [[ -f "$rdw_src" && -f "$rdw_dst" ]] && {
+      diff -q "$rdw_src" "$rdw_dst" >/dev/null 2>&1 || need_desktop=1
+    }
+  fi
+
+  local did_rebuild=0
+  [[ $need_ttyd    -eq 1 ]] && { rebuild_ttyd;        did_rebuild=1; }
+  [[ $need_api     -eq 1 ]] && { rebuild_api;         did_rebuild=1; }
+  [[ $need_caddy   -eq 1 ]] && { rebuild_caddy;       did_rebuild=1; }
+  [[ $need_dns     -eq 1 ]] && { rebuild_dns;         did_rebuild=1; }
+  [[ $need_cockpit -eq 1 ]] && { rebuild_cockpit;     did_rebuild=1; }
+  [[ $need_desktop -eq 1 ]] && { rebuild_desktop_web; did_rebuild=1; }
+
+  if [[ $did_rebuild -eq 0 ]]; then
+    echo "[ok] all services up to date"
+  fi
+}
+
 for svc in "${SERVICES[@]}"; do
   case "$svc" in
+    smart)   rebuild_smart ;;
     ttyd)    rebuild_ttyd ;;
     api)     rebuild_api ;;
     dns)     rebuild_dns ;;
@@ -190,8 +258,9 @@ for svc in "${SERVICES[@]}"; do
     cockpit) rebuild_cockpit ;;
     rdp|remote-desktop) rebuild_rdp ;;
     desktop-web|remote-desktop-web|guacamole) rebuild_desktop_web ;;
+    activate) rebuild_activate ;;
     *)
-      echo "Unknown service: '$svc'  (valid: ttyd api dns caddy cockpit rdp desktop-web)" >&2
+      echo "Unknown service: '$svc'  (valid: smart ttyd api dns caddy cockpit rdp desktop-web activate)" >&2
       exit 1
       ;;
   esac
