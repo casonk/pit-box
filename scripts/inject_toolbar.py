@@ -141,7 +141,7 @@ body.pb-sel-mode .xterm canvas {
   position: fixed;
   top: 0;
   right: 0;
-  bottom: calc(var(--pb-toolbar-h) + var(--pb-keyboard-offset));
+  bottom: calc(var(--pb-toolbar-h) + var(--pb-keyboard-offset) + env(safe-area-inset-bottom));
   left: 0;
   z-index: 10001;
   display: none;
@@ -168,6 +168,7 @@ body.pb-sel-mode .xterm canvas {
   padding: 10px;
   resize: none;
   overflow: auto;
+  overscroll-behavior: contain;
   background: #010409;
   color: #c9d1d9;
   border: 1px solid #30363d;
@@ -477,6 +478,11 @@ WS_INTERCEPTOR = """\
     window.localStorage.setItem(FONT_KEY, String(next));
     updateFontLabel(next);
     applyFontToTerminal(next);
+    var panel = getClipPanel();
+    if (panel && panel.classList.contains('pb-open')) {
+      var area = getClipTextArea();
+      if (area) { area.style.fontSize = Math.max(16, next) + 'px'; }
+    }
     scheduleTerminalResize();
   }
 
@@ -931,6 +937,7 @@ WS_INTERCEPTOR = """\
     // Mobile Safari can refuse useful selection handles in readonly textareas.
     area.readOnly = false;
     area.value = text || '';
+    area.style.fontSize = Math.max(16, readFontSize()) + 'px';
     area.placeholder = selectMode ? '' : 'Touch and hold here, then choose Paste';
     area.setAttribute('aria-label', selectMode ? 'Terminal text selection' : 'Text to paste into terminal');
     panel.classList.add('pb-open');
@@ -949,7 +956,8 @@ WS_INTERCEPTOR = """\
       if (selectMode) {
         // inputmode=none lets us focus for scroll without showing the keyboard.
         area.setAttribute('inputmode', 'none');
-        area.scrollTop = 0;
+        // Scroll to bottom so the newest content is visible; user swipes up for history.
+        area.scrollTop = area.scrollHeight;
         try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
         return;
       }
@@ -984,7 +992,17 @@ WS_INTERCEPTOR = """\
     }
     var selected = (termRef && typeof termRef.getSelection === 'function')
       ? termRef.getSelection() : '';
-    openClipPanel('select', selected || collectBufferText());
+    if (selected) {
+      openClipPanel('select', selected);
+      return;
+    }
+    // Load tmux scrollback history so the user can scroll backward through it.
+    fetch('/api/terminals/capture', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        openClipPanel('select', (data && data.text) ? data.text : collectBufferText());
+      })
+      .catch(function () { openClipPanel('select', collectBufferText()); });
   }
 
   function selectedPanelText() {
@@ -1217,11 +1235,14 @@ WS_INTERCEPTOR = """\
   installTerminalTouchScroll();
   installKeyboardInsetHandler();
 
-  // Pinch-to-zoom
+  // Pinch-to-zoom (terminal font only; skip when clip panel is open so native
+  // browser zoom works unobstructed for text selection in that panel).
   var _pinchDist0 = 0;
   var _pinchFont0 = FONT_DEFAULT;
   document.addEventListener('touchstart', function (e) {
     if (e.touches.length === 2) {
+      var panel = getClipPanel();
+      if (panel && panel.classList.contains('pb-open')) { _pinchDist0 = 0; return; }
       _pinchDist0 = Math.hypot(
         e.touches[1].clientX - e.touches[0].clientX,
         e.touches[1].clientY - e.touches[0].clientY
@@ -1231,6 +1252,8 @@ WS_INTERCEPTOR = """\
   }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (e.touches.length !== 2 || _pinchDist0 === 0) { return; }
+    var panel = getClipPanel();
+    if (panel && panel.classList.contains('pb-open')) { return; }
     var dist = Math.hypot(
       e.touches[1].clientX - e.touches[0].clientX,
       e.touches[1].clientY - e.touches[0].clientY

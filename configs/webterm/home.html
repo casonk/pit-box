@@ -88,6 +88,15 @@
     .btn-green:active { background: #2ea043; }
     .btn-gray  { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; }
     .btn-gray:active  { background: #2d333b; }
+    /* Two-column grid used for action, launch, service, and tool button groups. */
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+      align-items: start;
+    }
+    .btn-row .btn { margin: 0; }
     .section { margin-top: 28px; }
     .section-head {
       display: flex;
@@ -112,6 +121,10 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
+    }
+    @media (max-width: 360px) {
+      .win-grid,
+      .term-grid { grid-template-columns: repeat(2, 1fr); }
     }
     .win-card,
     .term-card {
@@ -234,9 +247,9 @@
   </div>
 
   <a class="btn btn-green" href="/term" id="btn-open">Open Terminal</a>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-    <button class="btn btn-gray" id="btn-new" style="margin-bottom:0">+ New Window</button>
-    <a class="btn btn-gray" href="/term?action=sessions" style="margin-bottom:0">Sessions</a>
+  <div class="btn-row">
+    <button class="btn btn-gray" id="btn-new">+ New Window</button>
+    <a class="btn btn-gray" href="/term?action=sessions">Sessions</a>
   </div>
 
   <div class="section">
@@ -264,7 +277,7 @@
     <div class="section-head">
       <div class="section-label">Launch</div>
     </div>
-    <div id="ext-services-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+    <div id="ext-services-grid" class="btn-row" style="margin-bottom:0"></div>
   </div>
 
   <div class="section">
@@ -272,20 +285,20 @@
       <div class="section-label">Services</div>
       <div class="section-count" id="rebuild-status"></div>
     </div>
-    <div id="svc-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-      <button class="btn btn-green" data-rebuild="smart" style="margin:0;grid-column:1/-1">deploy</button>
-      <details style="grid-column:1/-1;margin:0">
+    <div id="svc-grid" class="btn-row">
+      <button class="btn btn-green" data-rebuild="smart" style="grid-column:1/-1">deploy</button>
+      <details style="grid-column:1/-1">
         <summary style="cursor:pointer;color:#8b949e;font-size:12px;padding:4px 0;user-select:none">advanced</summary>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">
-          <button class="btn btn-gray" data-rebuild="ttyd"     style="margin:0">rebuild ttyd</button>
-          <button class="btn btn-gray" data-rebuild="api"      style="margin:0">rebuild api</button>
-          <button class="btn btn-gray" data-rebuild="caddy"    style="margin:0">rebuild caddy</button>
-          <button class="btn btn-gray" data-rebuild="dns"      style="margin:0">rebuild dns</button>
-          <button class="btn btn-gray" data-rebuild="all"      style="margin:0;grid-column:1/-1">rebuild all</button>
-          <button class="btn btn-gray" data-rebuild="activate" style="margin:0;grid-column:1/-1">activate (install scripts + sudoers)</button>
+        <div class="btn-row" style="margin-top:8px;margin-bottom:0">
+          <button class="btn btn-gray" data-rebuild="ttyd">rebuild ttyd</button>
+          <button class="btn btn-gray" data-rebuild="api">rebuild api</button>
+          <button class="btn btn-gray" data-rebuild="caddy">rebuild caddy</button>
+          <button class="btn btn-gray" data-rebuild="dns">rebuild dns</button>
+          <button class="btn btn-gray" data-rebuild="all"      style="grid-column:1/-1">rebuild all</button>
+          <button class="btn btn-gray" data-rebuild="activate" style="grid-column:1/-1">activate (install scripts + sudoers)</button>
         </div>
       </details>
-      <button class="btn btn-green" id="btn-promote" style="margin:0;grid-column:1/-1;display:none">promote to prod ↑</button>
+      <button class="btn btn-green" id="btn-promote" style="grid-column:1/-1;display:none">promote to prod ↑</button>
     </div>
   </div>
 
@@ -294,10 +307,10 @@
       <div class="section-label">Tools</div>
       <div class="section-count" id="task-status"></div>
     </div>
-    <div id="task-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-      <button class="btn btn-gray" data-task="validate"       style="margin:0">validate</button>
-      <button class="btn btn-gray" data-task="render-configs" style="margin:0">render configs</button>
-      <button class="btn btn-gray" data-task="package-client" style="margin:0;grid-column:1/-1">package client</button>
+    <div id="task-grid" class="btn-row">
+      <button class="btn btn-gray" data-task="validate">validate</button>
+      <button class="btn btn-gray" data-task="render-configs">render configs</button>
+      <button class="btn btn-gray" data-task="package-client" style="grid-column:1/-1">package client</button>
     </div>
     <pre id="task-output" style="display:none;margin-top:10px;font-size:11px;font-family:ui-monospace,monospace;color:#8b949e;background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word"></pre>
   </div>
@@ -623,17 +636,13 @@
       var section = document.getElementById('ext-services-section');
       var grid    = document.getElementById('ext-services-grid');
       var svc = env.services || {};
-      var btns = [];
-      if (svc.cockpit) {
-        btns.push(
-          '<a class="btn btn-gray" href="' + esc(svc.cockpit) + '" target="_blank" rel="noopener noreferrer" style="margin:0">Open Cockpit</a>'
-        );
-      }
-      if (svc.desktop) {
-        btns.push(
-          '<a class="btn btn-gray" href="' + esc(svc.desktop) + '" target="_blank" rel="noopener noreferrer" style="margin:0">Open Desktop</a>'
-        );
-      }
+      var svcList = [];
+      if (svc.cockpit) { svcList.push({ href: svc.cockpit, label: 'Open Cockpit' }); }
+      if (svc.desktop) { svcList.push({ href: svc.desktop, label: 'Open Desktop' }); }
+      var btns = svcList.map(function (s) {
+        var span = svcList.length === 1 ? ' style="grid-column:1/-1"' : '';
+        return '<a class="btn btn-gray" href="' + esc(s.href) + '" target="_blank" rel="noopener noreferrer"' + span + '>' + esc(s.label) + '</a>';
+      });
       if (btns.length && section && grid) {
         grid.innerHTML = btns.join('');
         section.style.display = 'block';
