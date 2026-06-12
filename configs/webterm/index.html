@@ -610,10 +610,6 @@
       }
 
       function beginTerminalTouchScroll(target, clientX, clientY, pointerId) {
-        if (isXtermMouseEventsActive()) {
-          touchScroll = null;
-          return false;
-        }
         if (!isTerminalTouchTarget(target, clientX, clientY)) {
           touchScroll = null;
           return false;
@@ -912,9 +908,13 @@
         setSelectButton(selectMode);
         window.requestAnimationFrame(function () {
           if (selectMode) {
+            // inputmode=none lets us focus for scroll without showing the keyboard.
+            area.setAttribute('inputmode', 'none');
             area.scrollTop = 0;
+            try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
             return;
           }
+          area.removeAttribute('inputmode');
           try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
         });
       }
@@ -931,6 +931,7 @@
           area.value = '';
           area.placeholder = '';
           area.readOnly = false;
+          area.removeAttribute('inputmode');
         }
         document.body.classList.remove('pb-sel-mode');
         setSelectButton(false);
