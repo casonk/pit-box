@@ -62,16 +62,12 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   zoom aggressively; keep the textarea font at least 16px and enforce the
   intended mobile viewport scale.
 - Mobile WebTerm finger scrolling should be an explicit terminal gesture, not
-  only native browser scrolling on `.xterm-viewport`. Prefer tmux mouse mode
-  plus xterm's native touch-to-wheel handling: when apps such as Codex request
-  mouse input, tmux forwards wheel events to the app; otherwise tmux enters
-  copy-mode for shell scrollback. Browser-side fallback handlers must step
-  aside when `.xterm.enable-mouse-events` is present, then use the loopback
-  WebTerm API for non-mouse terminal states. The API should decide whether the
-  foreground program is Codex-like and send Ctrl-Up/Ctrl-Down there; otherwise
-  it should enter tmux copy-mode and run `send-keys -X` scroll commands. Do not
-  send prefix+`[` or prefix+PageUp from the browser gesture path; failed or
-  stale mode transitions can leak literal input or move shell command history.
+  only native browser scrolling on `.xterm-viewport`. The loopback WebTerm API
+  handles scroll for all foreground states: Codex/node gets Ctrl-Up/Ctrl-Down,
+  everything else enters tmux copy-mode. Do NOT gate the touch-scroll handler on
+  `isXtermMouseEventsActive()` / `.xterm.enable-mouse-events` — `ttyd_session.sh`
+  sets `tmux mouse on` unconditionally, which permanently asserts that flag and
+  silently disables the entire touch-scroll path. Let the API decide how to scroll.
   Cover both `touch*` and pointer events because mobile browser event delivery
   differs by engine and embedded terminal focus state. Use coordinate-based
   stage hit testing as a fallback because terminal canvas events can be
@@ -90,6 +86,12 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 - WebTerm select/copy fallback panels should use a full-screen native textarea
   on phones. Half-height floating panels leave too little usable text area once
   mobile browser chrome, safe areas, and the terminal toolbar are present.
+- The WebTerm select panel textarea must be focused (with `inputmode="none"`) to
+  be touch-scrollable on iOS. iOS Safari will not scroll an unfocused textarea
+  inside a `position: fixed` container via touch. `inputmode="none"` prevents the
+  keyboard from appearing on focus while still enabling touch-scroll and text
+  selection. Do not focus without setting `inputmode="none"` first — the prior
+  lesson about not auto-focusing still applies (bare focus causes aggressive zoom).
 - When the web terminal uses both static pages and a loopback API, install and rebuild flows must deploy them together. Rebuilding only ttyd leaves the home page and live-terminal state UI stale even if the terminal itself updates.
 - When a rebuild script is likely to be run from inside WebTerm, restart
   `ttyd` last. Restarting `ttyd` kills the browser terminal that is running the
@@ -124,6 +126,12 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 - Service login credentials introduced in `pit-box` should resolve through the
   sibling `auto-pass` repo where possible. Keep direct password settings as
   ignored emergency fallbacks, not the normal source of truth.
+- The WebTerm select/copy clip panel must not cover the toolbar. `#pb-clip-panel`
+  uses `inset: 0` by default, which places it over the toolbar and blocks toolbar
+  buttons (zoom, font size, etc.) even though `pb-sel-mode` is active. Fix:
+  constrain the clip panel's bottom to `calc(var(--pb-toolbar-h) + var(--pb-keyboard-offset))`
+  and raise `#pb-toolbar` z-index above the panel so toolbar controls remain
+  reachable in all overlay states.
 - When validating scripts that support `WEBTERM_ENV_SUFFIX`, check the
   suffix-aware service/container variables or rendered-name construction rather
   than only prod literals. Dev/prod Quadlet names such as

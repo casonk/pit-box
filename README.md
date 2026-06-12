@@ -318,11 +318,13 @@ The expectation here is:
   window controls plus a guarded `-win` current-window button; `Tab`, `Esc`, and Ctrl keys;
   then `PgUp`, `PgDn`, `Bottom`, and arrows
 - `sel`, `copy`, and `paste` provide mobile clipboard support: selection opens a native text
-  panel that fills the screen and is backed by terminal scrollback or visible terminal DOM text;
-  copy uses browser clipboard with a textarea fallback; paste requests clipboard access from the
-  browser's normal click path and, when blocked, opens a clearly labeled paste-only panel with a
-  `send` button. Select/copy fallback panels do not auto-focus or auto-select their full textarea,
-  preventing mobile browsers from zooming into the panel
+  panel backed by terminal scrollback or visible terminal DOM text; copy uses browser clipboard
+  with a textarea fallback; paste requests clipboard access from the browser's normal click path
+  and, when blocked, opens a clearly labeled paste-only panel with a `send` button. Select/copy
+  fallback panels do not auto-focus or auto-select their full textarea, preventing mobile browsers
+  from zooming into the panel. The clipboard panel is constrained to the space above the bottom
+  toolbar so font zoom (`A-`/`A+`/`1:1`) and all other toolbar buttons remain accessible while
+  the panel is open
 - The `-win` button changes color on the first tap and kills the tmux window currently visible in
   that exact browser client after a second tap. tmux windows are shared, so other browser clients
   viewing that same window are also affected
