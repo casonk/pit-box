@@ -143,9 +143,19 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 - The WebTerm select/copy clip panel must not cover the toolbar. `#pb-clip-panel`
   uses `inset: 0` by default, which places it over the toolbar and blocks toolbar
   buttons (zoom, font size, etc.) even though `pb-sel-mode` is active. Fix:
-  constrain the clip panel's bottom to `calc(var(--pb-toolbar-h) + var(--pb-keyboard-offset))`
+  constrain the clip panel's bottom to `calc(var(--pb-toolbar-h) + var(--pb-keyboard-offset) + env(safe-area-inset-bottom))`
   and raise `#pb-toolbar` z-index above the panel so toolbar controls remain
-  reachable in all overlay states.
+  reachable in all overlay states. Including `env(safe-area-inset-bottom)` is
+  essential — the toolbar's `padding-bottom: max(6px, env(safe-area-inset-bottom))`
+  makes its actual rendered height exceed `--pb-toolbar-h` on iPhones with a home
+  bar, so the clip panel would overlap the first toolbar row (where A-/A+ live)
+  if the safe area offset is omitted.
+- The WebTerm clip panel textarea font size must track the terminal font size. On
+  panel open, set `area.style.fontSize = Math.max(16, readFontSize()) + 'px'` so
+  the text appears at the same scale as the terminal (min 16px prevents iOS
+  auto-zoom on focus). In `applyFontSize`, when the panel is open, apply the same
+  update so A-/A+ changes are immediately visible in the textarea rather than
+  appearing to do nothing until the panel is closed.
 - When validating scripts that support `WEBTERM_ENV_SUFFIX`, check the
   suffix-aware service/container variables or rendered-name construction rather
   than only prod literals. Dev/prod Quadlet names such as

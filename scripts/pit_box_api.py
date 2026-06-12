@@ -154,6 +154,15 @@ def kill_window(index: int) -> bool:
     return r.returncode == 0
 
 
+def capture_terminal(lines: int = 500) -> dict:
+    """Return recent tmux pane output including scrollback (for the sel panel)."""
+    lines = max(1, min(5000, lines))
+    r = tmux("capture-pane", "-t", SESSION, "-p", "-S", f"-{lines}")
+    if r.returncode != 0:
+        return {"ok": False, "error": r.stderr.strip()}
+    return {"ok": True, "text": r.stdout}
+
+
 _TASK_SCRIPTS: dict[str, str] = {
     "validate":       "validate.sh",
     "render-configs": "render_configs.sh",
@@ -296,8 +305,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         if self.path == "/api/windows":
             self._send(200, list_windows())
-        else:
-            self._send(404, {"error": "not found"})
+            return
+        if self.path.startswith("/api/terminals/capture"):
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            try:
+                lines = int(qs.get("lines", ["500"])[0])
+            except (ValueError, IndexError):
+                lines = 500
+            self._send(200, capture_terminal(lines))
+            return
+        self._send(404, {"error": "not found"})
 
     def _read_json(self):
         try:
