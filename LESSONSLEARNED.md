@@ -73,6 +73,20 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   stage hit testing as a fallback because terminal canvas events can be
   retargeted. Keep xterm/DOM viewport synchronization as a fallback for
   generated-page tests.
+- In WebTerm touch-scroll handlers, call `event.stopPropagation()` at the very
+  start of `moveTerminalTouchScroll` — before the minimum-delta guard — so xterm's
+  mouse-event pipeline never receives any terminal touch-move, regardless of
+  gesture size. Stopping propagation only after crossing the threshold lets small
+  moves reach xterm, which then sends mouse events to tmux; after our API enters
+  copy-mode, xterm's `pointerup` mouse-up exits copy-mode and causes the
+  frozen/snapping effect. Also stop propagation on `pointerup`/`touchend` when a
+  tmux scroll was initiated (`touchScroll.tmuxStarted`) so xterm's pointer-up
+  doesn't silently exit copy-mode either.
+- When the mobile keyboard opens, always scroll the WebTerm to the terminal bottom,
+  even when tmux copy-mode is active. Gate on keyboard inset (`next > 0`) only, not
+  on `!tmuxCopyModeLikely`. When copy-mode is active, call `bottomTmuxCopyMode()`
+  first and delay `scrollXtermToBottom` by ~300 ms to allow copy-mode exit and
+  redraw before the scroll.
 - Mobile WebTerm fixed-position layouts should account for the on-screen
   keyboard with `visualViewport`: raise the terminal stage and bottom toolbar by
   the keyboard inset, refit xterm, and scroll the xterm viewport to the bottom
