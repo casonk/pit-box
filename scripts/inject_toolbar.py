@@ -49,7 +49,7 @@ html, body { overflow: hidden; }
   position: fixed;
   left: 0;
   right: 0;
-  z-index: 9999;
+  z-index: 10002;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -139,12 +139,15 @@ body.pb-sel-mode .xterm canvas {
 .pb-btn.pb-active { background: #1f6feb; border-color: #388bfd; color: #fff; }
 #pb-clip-panel {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: calc(var(--pb-toolbar-h) + var(--pb-keyboard-offset));
+  left: 0;
   z-index: 10001;
   display: none;
   flex-direction: column;
   gap: 10px;
-  padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom));
+  padding: max(12px, env(safe-area-inset-top)) 10px 12px;
   background: #0d1117;
 }
 #pb-clip-panel.pb-open { display: flex; }
@@ -631,10 +634,6 @@ WS_INTERCEPTOR = """\
   }
 
   function beginTerminalTouchScroll(target, clientX, clientY, pointerId) {
-    if (isXtermMouseEventsActive()) {
-      touchScroll = null;
-      return false;
-    }
     if (!isTerminalTouchTarget(target, clientX, clientY)) {
       touchScroll = null;
       return false;
@@ -935,9 +934,13 @@ WS_INTERCEPTOR = """\
     setSelectButton(selectMode);
     window.requestAnimationFrame(function () {
       if (selectMode) {
+        // inputmode=none lets us focus for scroll without showing the keyboard.
+        area.setAttribute('inputmode', 'none');
         area.scrollTop = 0;
+        try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
         return;
       }
+      area.removeAttribute('inputmode');
       try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
     });
   }
@@ -954,6 +957,7 @@ WS_INTERCEPTOR = """\
       area.value = '';
       area.placeholder = '';
       area.readOnly = false;
+      area.removeAttribute('inputmode');
     }
     document.body.classList.remove('pb-sel-mode');
     setSelectButton(false);
