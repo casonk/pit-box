@@ -427,8 +427,13 @@ WS_INTERCEPTOR = """\
     document.documentElement.style.setProperty('--pb-keyboard-offset', next + 'px');
     document.body.classList.toggle('pb-keyboard-active', next > 0);
     scheduleTerminalResize();
-    if (next > 0 && !tmuxCopyModeLikely) {
-      window.setTimeout(scrollXtermToBottom, 160);
+    if (next > 0) {
+      if (tmuxCopyModeLikely) {
+        bottomTmuxCopyMode();
+        window.setTimeout(scrollXtermToBottom, 300);
+      } else {
+        window.setTimeout(scrollXtermToBottom, 160);
+      }
     }
   }
 
@@ -655,10 +660,10 @@ WS_INTERCEPTOR = """\
     if (!touchScroll) { return; }
     var viewport = findViewport();
     if (!viewport) { return; }
+    event.stopPropagation();
     var delta = touchScroll.startY - clientY;
     if (Math.abs(delta) < 4) { return; }
     event.preventDefault();
-    event.stopPropagation();
     var lineHeight = estimateLineHeight(viewport);
     var touchRows = Math.trunc((clientY - touchScroll.startY) / lineHeight);
     var rowsToSend = touchRows - touchScroll.sentRows;
@@ -706,14 +711,18 @@ WS_INTERCEPTOR = """\
 
       document.addEventListener('pointerup', function (event) {
         if (event.pointerId !== activeScrollPointerId) { return; }
+        var hadScrolled = touchScroll && touchScroll.tmuxStarted;
         activeScrollPointerId = null;
         endTerminalTouchScroll(event.pointerId);
+        if (hadScrolled) { event.stopPropagation(); }
       }, { passive: true, capture: true });
 
       document.addEventListener('pointercancel', function (event) {
         if (event.pointerId !== activeScrollPointerId) { return; }
+        var hadScrolled = touchScroll && touchScroll.tmuxStarted;
         activeScrollPointerId = null;
         endTerminalTouchScroll(event.pointerId);
+        if (hadScrolled) { event.stopPropagation(); }
       }, { passive: true, capture: true });
     }
 
@@ -732,14 +741,18 @@ WS_INTERCEPTOR = """\
       moveTerminalTouchScroll(event.touches[0].clientY, event);
     }, { passive: false, capture: true });
 
-    document.addEventListener('touchend', function () {
+    document.addEventListener('touchend', function (event) {
       if (activeScrollPointerId !== null) { return; }
+      var hadScrolled = touchScroll && touchScroll.tmuxStarted;
       endTerminalTouchScroll(null);
+      if (hadScrolled) { event.stopPropagation(); }
     }, { passive: true, capture: true });
 
-    document.addEventListener('touchcancel', function () {
+    document.addEventListener('touchcancel', function (event) {
       if (activeScrollPointerId !== null) { return; }
+      var hadScrolled = touchScroll && touchScroll.tmuxStarted;
       endTerminalTouchScroll(null);
+      if (hadScrolled) { event.stopPropagation(); }
     }, { passive: true, capture: true });
   }
 
