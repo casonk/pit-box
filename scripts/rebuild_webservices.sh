@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Redeploy rendered web-service configs and restart the affected systemd units.
-# Usage: rebuild_webservices.sh [--settings FILE] [ttyd] [api] [dns] [caddy] [cockpit] [rdp] [desktop-web] [session-control]
+# Usage: rebuild_webservices.sh [--settings FILE] [ttyd] [api] [dns] [caddy] [cockpit] [rdp] [desktop-web] [user-web] [session-control]
 # With no arguments all enabled services are rebuilt.
 set -euo pipefail
 
@@ -30,7 +30,7 @@ WEBTERM_TMUX_SESSION="${WEBTERM_TMUX_SESSION:-pit-box}"
 INSTALL_BASE="/etc/pit-box${WEBTERM_ENV_SUFFIX}"
 
 ALL_SERVICES=()
-[[ "${WEBTERM_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(ttyd api dns caddy session-control)
+[[ "${WEBTERM_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(ttyd api dns caddy user-web)
 [[ "${COCKPIT_ENABLED:-false}"  == "true" ]] && ALL_SERVICES+=(cockpit)
 [[ "${REMOTE_DESKTOP_ENABLED:-false}" == "true" ]] && ALL_SERVICES+=(rdp)
 [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]] && ALL_SERVICES+=(desktop-web)
@@ -181,13 +181,38 @@ rebuild_desktop_web() {
   echo "[ok] desktop-web${WEBTERM_ENV_SUFFIX} rebuilt"
 }
 
-rebuild_session_control() {
+_restart_user_service() {
+  local svc="$1"
   local uid
   uid="$(id -u "${WEBTERM_USER}")"
   local bus="unix:path=/run/user/${uid}/bus"
+  local svc_dir="/home/${WEBTERM_USER}/.config/systemd/user"
+  if [[ ! -f "${svc_dir}/${svc}.service" ]]; then
+    echo "[skip] ${svc}.service not installed"
+    return 0
+  fi
   XDG_RUNTIME_DIR="/run/user/${uid}" DBUS_SESSION_BUS_ADDRESS="${bus}" \
-    sudo -u "${WEBTERM_USER}" systemctl --user restart session-control-web.service
-  echo "[ok] session-control-web restarted"
+    sudo -u "${WEBTERM_USER}" systemctl --user restart "${svc}.service"
+  echo "[ok] ${svc}.service restarted"
+}
+
+# User-level web services proxied by Caddy. Order is safe — none depend on each other.
+_USER_WEB_SERVICES=(
+  clockwork-web
+  tachometer-dashboard
+  intake-web
+  magneto-web
+  session-control-web
+)
+
+rebuild_user_web_services() {
+  for svc in "${_USER_WEB_SERVICES[@]}"; do
+    _restart_user_service "$svc"
+  done
+}
+
+rebuild_session_control() {
+  _restart_user_service session-control-web
 }
 
 rebuild_activate() {
@@ -268,6 +293,7 @@ for svc in "${SERVICES[@]}"; do
     rdp|remote-desktop) rebuild_rdp ;;
     desktop-web|remote-desktop-web|guacamole) rebuild_desktop_web ;;
     activate) rebuild_activate ;;
+    user-web) rebuild_user_web_services ;;
     session-control) rebuild_session_control ;;
     *)
       echo "Unknown service: '$svc'  (valid: smart ttyd api dns caddy cockpit rdp desktop-web activate)" >&2
