@@ -224,6 +224,7 @@ https://${WEBTERM_HOSTNAME} {
 
 	@home path /
 	handle @home {
+		header Cache-Control "no-store"
 		root * /etc/pit-box${WEBTERM_ENV_SUFFIX}/webterm
 		rewrite * /home.html
 		file_server
@@ -236,6 +237,7 @@ https://${WEBTERM_HOSTNAME} {
 
 	@term path /term
 	handle @term {
+		header Cache-Control "no-store"
 		root * /etc/pit-box${WEBTERM_ENV_SUFFIX}/webterm
 		rewrite * /index.html
 		file_server

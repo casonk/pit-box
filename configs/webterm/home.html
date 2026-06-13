@@ -466,12 +466,14 @@
     var modalMode   = 'rebuild';
     var modalBusy   = false;
     var modalDone   = false;
+    var modalReload = false;
 
     function openRebuildModal(service) {
-      modalSvc  = service;
-      modalMode = 'rebuild';
-      modalBusy = false;
-      modalDone = false;
+      modalSvc    = service;
+      modalMode   = 'rebuild';
+      modalBusy   = false;
+      modalDone   = false;
+      modalReload = false;
       modalLabel.textContent = 'rebuild ' + service;
       modalPwd.value = '';
       modalOk.textContent = 'Rebuild';
@@ -484,10 +486,11 @@
     }
 
     function openPromoteModal() {
-      modalSvc  = null;
-      modalMode = 'promote';
-      modalBusy = false;
-      modalDone = false;
+      modalSvc    = null;
+      modalMode   = 'promote';
+      modalBusy   = false;
+      modalDone   = false;
+      modalReload = false;
       modalLabel.textContent = 'promote to prod — render configs + rebuild all services';
       modalPwd.value = '';
       modalOk.textContent = 'Promote';
@@ -506,7 +509,7 @@
     }
 
     function doRebuild() {
-      if (modalDone) { closeRebuildModal(); return; }
+      if (modalDone) { if (modalReload) { window.location.reload(); } else { closeRebuildModal(); } return; }
       if (modalMode === 'rebuild' && !modalSvc) { return; }
       if (modalBusy) { return; }
       modalBusy = true;
@@ -549,11 +552,13 @@
         modalBusy = false;
         modalCancel.disabled = false;
         if (isPromote || svc === 'api' || svc === 'all' || svc === 'smart') {
-          modalOut.textContent = '(connection closed — service restarted)';
+          modalOut.textContent = '(connection closed — reloading…)';
           modalOut.style.display = 'block';
-          modalOk.textContent = 'Close';
-          modalDone = true;
+          modalOk.textContent = 'Reload now';
+          modalDone   = true;
+          modalReload = true;
           modalOk.disabled = false;
+          setTimeout(function () { window.location.reload(); }, 3000);
         } else {
           modalOut.textContent = 'request failed';
           modalOut.style.display = 'block';
