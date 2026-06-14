@@ -275,7 +275,7 @@ EOF
 
   cat > "$BUILD_DIR/webterm/dnsmasq-vpn${WEBTERM_ENV_SUFFIX}.conf" <<EOF
 interface=${WG_INTERFACE}
-bind-interfaces
+bind-dynamic
 listen-address=${WG_SERVER_TUNNEL_IP}
 no-dhcp-interface=${WG_INTERFACE}
 server=${LAN_DNS_SERVER}
