@@ -1,1 +1,26 @@
-[]
+[
+ {
+  "RuleID": "portfolio-git-workspace-path",
+  "Description": "Hardcoded absolute path to local git workspace in config/code/scripts",
+  "StartLine": 6,
+  "EndLine": 6,
+  "StartColumn": 15,
+  "EndColumn": 30,
+  "Match": "/mnt/4tb-m2/git/",
+  "Secret": "/mnt/4tb-m2/git/",
+  "File": "config/scripts/pit-box-rebuild-guacamole",
+  "SymlinkFile": "",
+  "Commit": "6392ebff4e8b667c28c9a37355ad6dff041ebf73",
+  "Link": "https://github.com/casonk/pit-box/blob/6392ebff4e8b667c28c9a37355ad6dff041ebf73/config/scripts/pit-box-rebuild-guacamole#L6",
+  "Entropy": 3.0778196,
+  "Author": "Cason Konzer",
+  "Email": "72440835+casonk@users.noreply.github.com",
+  "Date": "2026-06-11T11:19:57Z",
+  "Message": "feat: guacamole rebuild script and sudo wrapper\n\n- scripts/rebuild_guacamole.sh: standalone render+install in one shot\n- config/scripts/pit-box-rebuild-guacamole: sudo-callable wrapper for\n  clockwork-web; install to /usr/local/bin/ via clockwork activate.sh\n\nCo-Authored-By: Claude Sonnet 4.6 \u003cnoreply@anthropic.com\u003e",
+  "Tags": [
+   "local-path",
+   "machine-specific"
+  ],
+  "Fingerprint": "6392ebff4e8b667c28c9a37355ad6dff041ebf73:config/scripts/pit-box-rebuild-guacamole:portfolio-git-workspace-path:6"
+ }
+]

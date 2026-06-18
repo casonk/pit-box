@@ -76,10 +76,7 @@ credential_exports="$(
 )"
 eval "$credential_exports"
 
-password_hash="${REMOTE_DESKTOP_WEB_PASSWORD_MD5:-}"
-if [[ -z "$password_hash" ]]; then
-  password_hash="$(printf '%s' "$REMOTE_DESKTOP_WEB_PASSWORD" | md5sum | awk '{print $1}')"
-fi
+password_hash="$REMOTE_DESKTOP_WEB_PASSWORD_HASH"
 
 mkdir -p "$GUAC_HOME"
 chmod 700 "$BUILD_DIR" "$GUAC_HOME"
@@ -96,7 +93,7 @@ port_escaped="$(xml_escape "$REMOTE_DESKTOP_PORT")"
 
 cat > "$GUAC_HOME/user-mapping.xml" <<EOF
 <user-mapping>
-  <authorize username="${user_escaped}" password="${password_hash}" encoding="md5">
+  <authorize username="${user_escaped}" password="${password_hash}" encoding="sha256">
     <connection name="Pit Box Desktop">
       <protocol>rdp</protocol>
       <param name="hostname">${host_escaped}</param>

@@ -943,7 +943,9 @@ WS_INTERCEPTOR = """\
     panel.classList.add('pb-open');
     panel.setAttribute('data-mode', selectMode ? 'select' : 'paste');
     panel.setAttribute('aria-hidden', 'false');
-    setViewportScalable(true);
+    // Only unlock zoom for paste mode (keyboard + typing). In select mode keeping
+    // maximum-scale=1.0 prevents iOS Safari from auto-zooming on textarea focus.
+    if (!selectMode) { setViewportScalable(true); }
     if (title) { title.textContent = selectMode ? 'Select terminal text' : 'Paste into terminal'; }
     if (help) {
       help.textContent = selectMode

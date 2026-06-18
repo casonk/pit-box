@@ -9,6 +9,7 @@ Endpoints:
   POST   /api/terminals/scroll - scroll attached WebTerm tmux copy-mode panes
   POST   /api/rebuild          - run rebuild_webservices.sh via sudo -S (password in body)
   POST   /api/promote          - render prod configs then rebuild all prod services (one password)
+  POST   /api/snowbridge/repair - repair Snowbridge share mounts and watchdog (one password)
   POST   /api/task             - run a no-sudo pit-box script (task name in body)
   DELETE /api/windows/<n>      - kill tmux window N
 """
@@ -157,10 +158,17 @@ def kill_window(index: int) -> bool:
 def capture_terminal(lines: int = 500) -> dict:
     """Return recent tmux pane output including scrollback (for the sel panel)."""
     lines = max(1, min(5000, lines))
-    r = tmux("capture-pane", "-t", SESSION, "-p", "-S", f"-{lines}")
-    if r.returncode != 0:
-        return {"ok": False, "error": r.stderr.strip()}
-    return {"ok": True, "text": r.stdout}
+    # Prefer the most-recently-attached grouped "pb-*" session so we capture
+    # the window the requesting browser tab is actually looking at, not just
+    # whatever window the base session happens to be tracking.
+    names = attached_terminal_names()
+    # Reverse so the most-recently-created session (highest pb-PID) is tried first.
+    targets = list(reversed(names)) + ([SESSION] if SESSION not in names else [])
+    for target in targets:
+        r = tmux("capture-pane", "-t", target, "-p", "-S", f"-{lines}")
+        if r.returncode == 0:
+            return {"ok": True, "text": r.stdout}
+    return {"ok": False, "error": r.stderr.strip()}
 
 
 _TASK_SCRIPTS: dict[str, str] = {
@@ -205,6 +213,34 @@ def promote_to_prod(password: str) -> dict:
     combined_out = "\n".join(filter(None, [render_out, rebuild_out]))
     lines = combined_out.splitlines()
     return {"ok": r2.returncode == 0, "output": "\n".join(lines[-30:])}
+
+
+def repair_snowbridge(password: str) -> dict:
+    repo = os.environ.get("SNOWBRIDGE_REPO", "")
+    if not repo:
+        return {"ok": False, "output": "SNOWBRIDGE_REPO is not set in environment"}
+    command = (
+        "./scripts/setup_bind_share.py --config config/share-layout/folders.local.ini --write-fstab"
+        " && bash scripts/start_snowbridge.sh"
+        " && ./scripts/setup_share_bind_mount_watch.sh --install-systemd"
+        " && ./scripts/check_share_bind_mounts.sh"
+    )
+    cmd = ["sudo", "-S", "--", "bash", "-lc", f"cd {repo} && {command}"]
+    try:
+        r = subprocess.run(
+            cmd,
+            input=password + "\n",
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "Snowbridge repair timed out (240 s)"}
+    except OSError as exc:
+        return {"ok": False, "error": str(exc)}
+    combined = "\n".join(filter(None, [r.stdout.strip(), r.stderr.strip()]))
+    lines = combined.splitlines()
+    return {"ok": r.returncode == 0, "output": "\n".join(lines[-40:])}
 
 
 def run_task(task: str) -> dict:
@@ -364,6 +400,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             password = str(payload.get("password", ""))
             result = promote_to_prod(password)
+            self._send(200, result)
+            return
+        if self.path == "/api/snowbridge/repair":
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                self._send(400, {"error": "invalid json body"})
+                return
+            password = str(payload.get("password", ""))
+            result = repair_snowbridge(password)
             self._send(200, result)
             return
         if self.path == "/api/task":
