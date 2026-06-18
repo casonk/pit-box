@@ -16,11 +16,35 @@
   "Author": "Cason Konzer",
   "Email": "72440835+casonk@users.noreply.github.com",
   "Date": "2026-06-11T11:19:57Z",
-  "Message": "feat: guacamole rebuild script and sudo wrapper\n\n- scripts/rebuild_guacamole.sh: standalone render+install in one shot\n- config/scripts/pit-box-rebuild-guacamole: sudo-callable wrapper for\n  clockwork-web; install to /usr/local/bin/ via clockwork activate.sh\n\nCo-Authored-By: Claude Sonnet 4.6 \u003cnoreply@anthropic.com\u003e",
+  "Message": "feat: guacamole rebuild script and sudo wrapper\n\n- scripts/rebuild_guacamole.sh: standalone render+install in one shot\n- config/scripts/pit-box-rebuild-guacamole: sudo-callable wrapper for\n  clockwork-web; install to /usr/local/bin/ via clockwork activate.sh\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
   "Tags": [
    "local-path",
    "machine-specific"
   ],
   "Fingerprint": "6392ebff4e8b667c28c9a37355ad6dff041ebf73:config/scripts/pit-box-rebuild-guacamole:portfolio-git-workspace-path:6"
+ },
+ {
+  "RuleID": "keepass-real-profile-name",
+  "Description": "Real KeePass profile name committed to a config or example file",
+  "StartLine": 5,
+  "EndLine": 5,
+  "StartColumn": 2,
+  "EndColumn": 16,
+  "Match": "profile = infra",
+  "Secret": "infra",
+  "File": "config/auto-pass.example.ini",
+  "SymlinkFile": "",
+  "Commit": "80693138f69dd8a6ab27af11a953d0538969bd31",
+  "Link": "https://github.com/casonk/pit-box/blob/80693138f69dd8a6ab27af11a953d0538969bd31/config/auto-pass.example.ini#L5",
+  "Entropy": 2.321928,
+  "Author": "Cason Konzer",
+  "Email": "72440835+casonk@users.noreply.github.com",
+  "Date": "2026-04-30T10:38:06Z",
+  "Message": "feat: add remote desktop scaffold (guacamole/xRDP/XFCE gateway)\n\nAdd install scripts, config templates, and docs for an optional\nremote-desktop gateway: guacamole + XRDP + XFCE, rendered via\nrender_remote_desktop_gateway.sh. Passwords sourced via auto-pass /\nKeePassXC; no hardcoded credentials. Update CHANGELOG, README,\nLESSONSLEARNED, REFS-PUBLIC, security-model, and example configs.\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>",
+  "Tags": [
+   "keepass",
+   "sensitive-config"
+  ],
+  "Fingerprint": "80693138f69dd8a6ab27af11a953d0538969bd31:config/auto-pass.example.ini:keepass-real-profile-name:5"
  }
 ]
