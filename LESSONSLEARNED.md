@@ -12,6 +12,10 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 
 ## Lessons
 
+- User-run privileged recovery workflows exposed through WebTerm should appear as
+  a single guarded home-page button whenever practical. The button should call a
+  narrow API endpoint that runs one ordered command and reports its output, not
+  require manual command-by-command transcription.
 - Before adding a new reverse proxy (nginx, caddy, etc.) for a web service, check what is already listening on port 80/443 with `ss -tlnp | grep ':80\|:443'` and `systemctl list-units --type=service --state=running | grep -iE 'http|web|caddy|apache'`. This machine runs Caddy as the wiring-harness reverse proxy; all new internal services should be wired in via a Caddyfile.d drop-in rather than installing a competing proxy.
 
 - Document the repository around its real execution, curation, or integration flow instead of only the top-level folder list.

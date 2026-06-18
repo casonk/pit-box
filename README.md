@@ -62,6 +62,15 @@ Consent reference: [`../../doc-repos/my-consent/remote-access-and-private-files.
     └── package_client.sh
 ```
 
+## Web Terminal Recovery Buttons
+
+The WebTerm home page includes a guarded `repair Snowbridge files` button. It
+prompts for the sudo password and runs the Snowbridge share recovery as one
+ordered operation: apply the share layout, refresh the live binds and services,
+install the share-bind watchdog, and verify the bind state. The action preserves
+Snowbridge's intended layout, including `receipt/intake` under the receipt
+folder rather than a top-level `intake` share.
+
 ## Architecture
 
 ```text
@@ -240,8 +249,8 @@ REMOTE_DESKTOP_BIND_ADDRESS=10.8.0.1
 REMOTE_DESKTOP_WEB_ENABLED=true
 REMOTE_DESKTOP_WEB_PORT=8090
 REMOTE_DESKTOP_WEB_USER=iphone
-REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_ENTRY=pit-box/remote-desktop/guacamole
-REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE=infra
+REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_ENTRY=your-service/remote-desktop/password
+REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE=your-profile
 REMOTE_DESKTOP_GUACAMOLE_UID=1001
 REMOTE_DESKTOP_GUACAMOLE_GID=1001
 ```

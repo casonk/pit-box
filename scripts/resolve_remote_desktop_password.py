@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import hashlib
 import shlex
 import sys
 from pathlib import Path
@@ -51,29 +52,36 @@ def _load_repo_auto_pass_config() -> dict[str, str]:
             "web_password_keepass_entry",
             fallback="",
         ).strip()
+        values["web_password_hash_keepass_entry"] = parser.get(
+            "remote_desktop",
+            "web_password_hash_keepass_entry",
+            fallback="",
+        ).strip()
     return {key: value for key, value in values.items() if value}
 
 
-def _resolve_from_auto_pass(
-    *,
-    entry: str,
-    profile: str,
-    env_file: Path,
-    fallback_user: str,
-    allow_interactive: bool,
-) -> tuple[str, str]:
+def _load_auto_pass(*, env_file: Path, profile: str) -> None:
     auto_pass_src = AUTO_PASS_ROOT / "src"
     if not auto_pass_src.is_dir():
         raise ResolveError(f"auto-pass source tree not found at {auto_pass_src}")
     sys.path.insert(0, str(auto_pass_src))
 
     from auto_pass.envfile import load_config_environment  # noqa: PLC0415
-    from auto_pass.keepassxc import resolve_keepassxc_entry  # noqa: PLC0415
 
     if env_file.is_file():
         load_config_environment(str(env_file), profile=profile or None)
     elif profile:
         load_config_environment(str(env_file), profile=profile)
+
+
+def _resolve_credentials(
+    *,
+    entry: str,
+    fallback_user: str,
+    allow_interactive: bool,
+) -> tuple[str, str]:
+    """Return (username, password) from the main KeePass entry."""
+    from auto_pass.keepassxc import resolve_keepassxc_entry  # noqa: PLC0415
 
     result = resolve_keepassxc_entry(
         entry=entry,
@@ -83,6 +91,25 @@ def _resolve_from_auto_pass(
     username = str(result.get("username", "")).strip() or fallback_user
     password = str(result.get("password", ""))
     return username, password
+
+
+def _resolve_hash_entry(
+    *,
+    hash_entry: str,
+    allow_interactive: bool,
+) -> str:
+    """Return the stored hash from the dedicated hash KeePass entry, or empty string."""
+    from auto_pass.keepassxc import resolve_keepassxc_entry  # noqa: PLC0415
+
+    try:
+        result = resolve_keepassxc_entry(
+            entry=hash_entry,
+            attrs_map={"hash": "password"},
+            allow_interactive=allow_interactive,
+        )
+        return str(result.get("hash", "")).strip()
+    except Exception:
+        return ""
 
 
 def parse_args() -> argparse.Namespace:
@@ -111,39 +138,45 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     repo_auto_pass = _load_repo_auto_pass_config()
-    entry = str(args.entry or "").strip() or repo_auto_pass.get(
-        "web_password_keepass_entry",
-        "",
-    )
+    entry = str(args.entry or "").strip() or repo_auto_pass.get("web_password_keepass_entry", "")
+    hash_entry = repo_auto_pass.get("web_password_hash_keepass_entry", "")
     profile = str(args.profile or "").strip() or repo_auto_pass.get("profile", "")
     env_file = _resolve_path(str(args.env_file or "").strip() or repo_auto_pass.get("env_file", ""))
     username = str(args.user or "").strip()
     password = str(args.fallback_password or "")
     source = "settings.env"
 
+    password_hash = ""
     if entry:
         try:
-            username, password = _resolve_from_auto_pass(
+            _load_auto_pass(env_file=env_file, profile=profile)
+            username, password = _resolve_credentials(
                 entry=entry,
-                profile=profile,
-                env_file=env_file,
                 fallback_user=username,
                 allow_interactive=bool(args.allow_interactive),
             )
             source = f"auto-pass:{entry}"
+            if hash_entry:
+                password_hash = _resolve_hash_entry(
+                    hash_entry=hash_entry,
+                    allow_interactive=bool(args.allow_interactive),
+                )
         except Exception as exc:
             raise ResolveError(f"auto-pass lookup failed for {entry!r}: {exc}") from exc
 
     if not username:
         raise ResolveError("remote desktop web username is empty")
-    if not password:
+    if not password and not password_hash:
         raise ResolveError(
             "remote desktop web password is empty; set "
             "REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_ENTRY or REMOTE_DESKTOP_WEB_PASSWORD"
         )
 
+    if not password_hash:
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+
     print(f"REMOTE_DESKTOP_WEB_USER={shlex.quote(username)}")
-    print(f"REMOTE_DESKTOP_WEB_PASSWORD={shlex.quote(password)}")
+    print(f"REMOTE_DESKTOP_WEB_PASSWORD_HASH={shlex.quote(password_hash)}")
     print(f"REMOTE_DESKTOP_WEB_PASSWORD_SOURCE={shlex.quote(source)}")
     return 0
 

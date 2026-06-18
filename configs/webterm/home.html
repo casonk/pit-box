@@ -307,6 +307,7 @@
       <div class="section-count" id="task-status"></div>
     </div>
     <div id="task-grid" class="btn-row">
+      <button class="btn btn-green" data-snowbridge-repair style="grid-column:1/-1">repair Snowbridge files</button>
       <button class="btn btn-gray" data-task="validate">validate</button>
       <button class="btn btn-gray" data-task="render-configs">render configs</button>
       <button class="btn btn-gray" data-task="package-client" style="grid-column:1/-1">package client</button>
@@ -502,6 +503,23 @@
       setTimeout(function () { modalPwd.focus(); }, 50);
     }
 
+    function openSnowbridgeRepairModal() {
+      modalSvc    = null;
+      modalMode   = 'snowbridge-repair';
+      modalBusy   = false;
+      modalDone   = false;
+      modalReload = false;
+      modalLabel.textContent = 'repair Snowbridge files — apply share layout, remount folders, install watchdog';
+      modalPwd.value = '';
+      modalOk.textContent = 'Repair';
+      modalOk.disabled = false;
+      modalCancel.disabled = false;
+      modalOut.style.display = 'none';
+      modalOut.textContent = '';
+      modalEl.style.display = 'flex';
+      setTimeout(function () { modalPwd.focus(); }, 50);
+    }
+
     function closeRebuildModal() {
       if (modalBusy) { return; }
       modalEl.style.display = 'none';
@@ -515,12 +533,13 @@
       modalBusy = true;
       modalOut.style.display = 'none';
       var isPromote = (modalMode === 'promote');
-      modalOk.textContent = isPromote ? 'promoting…' : 'rebuilding…';
+      var isSnowbridgeRepair = (modalMode === 'snowbridge-repair');
+      modalOk.textContent = isPromote ? 'promoting…' : (isSnowbridgeRepair ? 'repairing…' : 'rebuilding…');
       modalOk.disabled = true;
       modalCancel.disabled = true;
       var svc = modalSvc;
-      var url  = isPromote ? '/api/promote' : '/api/rebuild';
-      var body = isPromote
+      var url = isSnowbridgeRepair ? '/api/snowbridge/repair' : (isPromote ? '/api/promote' : '/api/rebuild');
+      var body = isSnowbridgeRepair || isPromote
         ? JSON.stringify({ password: modalPwd.value })
         : JSON.stringify({ service: svc, password: modalPwd.value });
       readJson(url, {
@@ -542,7 +561,7 @@
           modalOk.disabled = false;
         } else {
           if (!out) {
-            modalOut.textContent = isPromote ? 'promote failed' : 'rebuild failed';
+            modalOut.textContent = isPromote ? 'promote failed' : (isSnowbridgeRepair ? 'Snowbridge repair failed' : 'rebuild failed');
             modalOut.style.display = 'block';
           }
           modalOk.textContent = 'Retry';
@@ -588,6 +607,8 @@
     document.getElementById('btn-promote').addEventListener('click', openPromoteModal);
 
     document.getElementById('task-grid').addEventListener('click', function (event) {
+      var repairButton = event.target.closest('[data-snowbridge-repair]');
+      if (repairButton) { openSnowbridgeRepairModal(); return; }
       var button = event.target.closest('[data-task]');
       if (!button || button.disabled) { return; }
       var task    = button.getAttribute('data-task');
