@@ -910,7 +910,7 @@
         panel.classList.add('pb-open');
         panel.setAttribute('data-mode', selectMode ? 'select' : 'paste');
         panel.setAttribute('aria-hidden', 'false');
-        setViewportScalable(true);
+        if (!selectMode) { setViewportScalable(true); }
         if (title) { title.textContent = selectMode ? 'Select terminal text' : 'Paste into terminal'; }
         if (help) {
           help.textContent = selectMode

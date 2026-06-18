@@ -125,7 +125,7 @@ def main() -> int:
     profile = str(args.profile or "").strip() or _setting(
         settings,
         "REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE",
-    ) or repo_auto_pass.get("profile", "infra")
+    ) or repo_auto_pass.get("profile", "")
     env_file = _resolve_path(
         str(args.env_file or "").strip()
         or _setting(settings, "REMOTE_DESKTOP_WEB_AUTO_PASS_ENV_FILE")

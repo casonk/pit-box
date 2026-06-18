@@ -222,6 +222,10 @@ if [[ -f "$ROOT_DIR/scripts/pit_box_api.py" ]]; then
     echo "[invalid] scripts/pit_box_api.py does not route Codex-like foreground app scrolling through Ctrl-Up/Ctrl-Down" >&2
     errors=$((errors + 1))
   fi
+  if ! grep -q '/api/snowbridge/repair' "$ROOT_DIR/scripts/pit_box_api.py" || ! grep -q 'setup_share_bind_mount_watch.sh --install-systemd' "$ROOT_DIR/scripts/pit_box_api.py"; then
+    echo "[invalid] scripts/pit_box_api.py does not expose the Snowbridge share repair action" >&2
+    errors=$((errors + 1))
+  fi
   if ! grep -q 'send-keys", "-t", target, "-X"' "$ROOT_DIR/scripts/pit_box_api.py"; then
     echo "[invalid] scripts/pit_box_api.py does not drive tmux copy-mode scrolling through send-keys -X" >&2
     errors=$((errors + 1))
@@ -421,6 +425,13 @@ if [[ -f "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example" ]]; then
   fi
   if ! grep -q 'uri strip_prefix /term' "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"; then
     echo "[invalid] configs/webterm/caddy-webterm.caddy.example does not strip /term before proxying ttyd endpoints" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/configs/webterm/home.html" ]]; then
+  if ! grep -q 'data-snowbridge-repair' "$ROOT_DIR/configs/webterm/home.html" || ! grep -q '/api/snowbridge/repair' "$ROOT_DIR/configs/webterm/home.html"; then
+    echo "[invalid] configs/webterm/home.html does not expose the Snowbridge repair button" >&2
     errors=$((errors + 1))
   fi
 fi

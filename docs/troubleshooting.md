@@ -189,7 +189,7 @@ credential through auto-pass and rerender/reinstall the gateway:
 
 ```bash
 cd ../auto-pass
-PYTHONPATH=src python3 -m auto_pass --profile infra get pit-box/remote-desktop/guacamole
+PYTHONPATH=src python3 -m auto_pass --profile your-profile get your-service/remote-desktop/password
 cd ../pit-box
 ./scripts/render_remote_desktop_gateway.sh
 sudo ./scripts/install_remote_desktop_gateway.sh
