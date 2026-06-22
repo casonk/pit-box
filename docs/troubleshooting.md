@@ -82,6 +82,15 @@ Check:
 6. if you are running the rebuild from inside WebTerm, `ttyd` will kill that browser terminal near the end of `sudo ./scripts/rebuild_webservices.sh ttyd`; that is expected after the API restart and health check have already run.
 7. hard-refresh the browser after `sudo ./scripts/rebuild_webservices.sh ttyd`; stale JavaScript or a stale `pit-box-api` service can leave the old direct-key scrolling active.
 
+## Web terminal select panel does not scroll
+
+Check:
+
+1. run `sudo ./scripts/rebuild_webservices.sh ttyd` so the rendered terminal page picks up the latest clip-panel handlers.
+2. hard-refresh `/term`; stale JavaScript can leave the old native-textarea-only scrolling path active.
+3. `/etc/pit-box/webterm/index.html` contains `installClipTouchScroll`, `data-clip-scroll-installed`, and `Math.max(16, readFontSize())`.
+4. tap `sel`; the panel should open focused with `inputmode="none"`, and one-finger swipes inside the text area should move the panel text instead of the terminal behind it.
+
 ## Web terminal toolbar fills the screen in landscape
 
 Check:

@@ -392,8 +392,12 @@ if [[ -f "$ROOT_DIR/scripts/inject_toolbar.py" ]]; then
     echo "[invalid] scripts/inject_toolbar.py does not preserve the mobile keyboard across ordinary toolbar actions" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q 'font-size: 18px' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q 'maximum-scale=1.0, user-scalable=no' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+  if ! grep -q 'Math.max(16, readFontSize())' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q 'maximum-scale=1.0, user-scalable=no' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not guard the clipboard panel against mobile focus zoom" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'installClipTouchScroll' "$ROOT_DIR/scripts/inject_toolbar.py" || ! grep -q 'data-clip-scroll-installed' "$ROOT_DIR/scripts/inject_toolbar.py"; then
+    echo "[invalid] scripts/inject_toolbar.py does not install explicit clip-panel touch scrolling" >&2
     errors=$((errors + 1))
   fi
   if grep -q 'area.select()' "$ROOT_DIR/scripts/inject_toolbar.py"; then
@@ -585,8 +589,12 @@ if [[ -f "$ROOT_DIR/configs/webterm/index.html" ]]; then
     echo "[invalid] configs/webterm/index.html fallback does not preserve the mobile keyboard across ordinary toolbar actions" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q 'font-size: 18px' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q 'maximum-scale=1.0, user-scalable=no' "$ROOT_DIR/configs/webterm/index.html"; then
+  if ! grep -q 'Math.max(16, readFontSize())' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q 'maximum-scale=1.0, user-scalable=no' "$ROOT_DIR/configs/webterm/index.html"; then
     echo "[invalid] configs/webterm/index.html fallback does not guard the clipboard panel against mobile focus zoom" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'installClipTouchScroll' "$ROOT_DIR/configs/webterm/index.html" || ! grep -q 'data-clip-scroll-installed' "$ROOT_DIR/configs/webterm/index.html"; then
+    echo "[invalid] configs/webterm/index.html fallback does not install explicit clip-panel touch scrolling" >&2
     errors=$((errors + 1))
   fi
   if grep -q 'area.select()' "$ROOT_DIR/configs/webterm/index.html"; then
