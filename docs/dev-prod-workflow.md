@@ -83,7 +83,7 @@ should be the same commit you validated in dev.
 |---|---|---|
 | ttyd | `WEBTERM_PORT` (default 7681) | `WEBTERM_PORT` in `settings.dev.env` (default 7691) |
 | API | `WEBTERM_PORT + 1` (default 7682) | `WEBTERM_PORT + 1` (default 7692) |
-| tmux session | `pit-box` | `pit-box-dev` |
+| tmux session | `main` via `WEBTERM_TMUX_SESSION` | `pit-box-dev` via `WEBTERM_TMUX_SESSION` |
 | install path | `/etc/pit-box/` | `/etc/pit-box-dev/` |
 | systemd units | `ttyd`, `pit-box-api` | `ttyd-dev`, `pit-box-api-dev` |
 | Caddy drop-in | `pit-box-webterm.caddy` | `pit-box-webterm-dev.caddy` |

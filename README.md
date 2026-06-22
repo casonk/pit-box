@@ -210,7 +210,8 @@ This creates `dist/pit-box-client.zip` containing the client config and a QR-fri
 
 ### 10. (Optional) Install the web terminal
 
-Enable in `settings.env` (`WEBTERM_ENABLED=true`, set `WEBTERM_PORT`), then
+Enable in `settings.env` (`WEBTERM_ENABLED=true`, set `WEBTERM_PORT`, and set
+`WEBTERM_TMUX_SESSION` to the base tmux session WebTerm should attach to), then
 re-render and install:
 
 ```bash
@@ -330,10 +331,11 @@ The expectation here is:
   panel backed by terminal scrollback or visible terminal DOM text; copy uses browser clipboard
   with a textarea fallback; paste requests clipboard access from the browser's normal click path
   and, when blocked, opens a clearly labeled paste-only panel with a `send` button. Select/copy
-  fallback panels do not auto-focus or auto-select their full textarea, preventing mobile browsers
-  from zooming into the panel. The clipboard panel is constrained to the space above the bottom
-  toolbar so font zoom (`A-`/`A+`/`1:1`) and all other toolbar buttons remain accessible while
-  the panel is open
+  fallback panels do not auto-select their full textarea, preventing mobile browsers from zooming
+  into the panel. The select textarea keeps a mobile-safe font size and has its own touch-scroll
+  handler so fixed-position textarea scrolling does not depend solely on Safari's native behavior.
+  The clipboard panel is constrained to the space above the bottom toolbar so font zoom
+  (`A-`/`A+`/`1:1`) and all other toolbar buttons remain accessible while the panel is open
 - The `-win` button changes color on the first tap and kills the tmux window currently visible in
   that exact browser client after a second tap. tmux windows are shared, so other browser clients
   viewing that same window are also affected

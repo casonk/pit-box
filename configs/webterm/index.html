@@ -153,7 +153,7 @@
       border: 1px solid #30363d;
       border-radius: 8px;
       font-family: ui-monospace, monospace;
-      font-size: 18px;
+      font-size: 16px;
       line-height: 1.4;
       user-select: text;
       -webkit-user-select: text;
@@ -286,6 +286,7 @@
       var keyboardInsetTimer = null;
       var lastKeyboardOffset = -1;
       var tmuxCopyModeLikely = false;
+      var clipTouchScroll = null;
       var KEY_ESC = '\x1b';
       var KEY_PAGE_UP = '\x1b[5~';
       var KEY_PAGE_DOWN = '\x1b[6~';
@@ -453,6 +454,14 @@
         window.localStorage.setItem(FONT_KEY, String(next));
         updateFontLabel(next);
         applyFontToTerminal(next);
+        var panel = getClipPanel();
+        if (panel && panel.classList.contains('pb-open')) {
+          var area = getClipTextArea();
+          if (area) {
+            var panelMode = panel.getAttribute('data-mode');
+              area.style.fontSize = Math.max(16, next) + 'px';
+          }
+        }
         scheduleTerminalResize();
       }
 
@@ -875,7 +884,7 @@
         }
         var buffer = termRef.buffer.active;
         var lines = [];
-        var start = Math.max(0, buffer.length - 2000);
+        var start = Math.max(0, buffer.length - 5000);
         for (var i = start; i < buffer.length; i += 1) {
           var line = buffer.getLine(i);
           if (line && typeof line.translateToString === 'function') {
@@ -905,6 +914,7 @@
         var help = document.getElementById('pb-clip-help');
         area.readOnly = false;
         area.value = text || '';
+        area.style.fontSize = Math.max(16, readFontSize()) + 'px';
         area.placeholder = selectMode ? '' : 'Touch and hold here, then choose Paste';
         area.setAttribute('aria-label', selectMode ? 'Terminal text selection' : 'Text to paste into terminal');
         panel.classList.add('pb-open');
@@ -923,7 +933,8 @@
           if (selectMode) {
             // inputmode=none lets us focus for scroll without showing the keyboard.
             area.setAttribute('inputmode', 'none');
-            area.scrollTop = 0;
+            // Scroll to bottom so the newest content is visible; user swipes up for history.
+            area.scrollTop = area.scrollHeight;
             try { area.focus({ preventScroll: true }); } catch (e) { area.focus(); }
             return;
           }
@@ -951,6 +962,37 @@
         setViewportScalable(false);
       }
 
+      function beginClipTouchScroll(event) {
+        var area = getClipTextArea();
+        if (!area || event.touches.length !== 1) { return; }
+        clipTouchScroll = {
+          startY: event.touches[0].clientY,
+          startTop: area.scrollTop
+        };
+      }
+
+      function moveClipTouchScroll(event) {
+        var area = getClipTextArea();
+        if (!area || !clipTouchScroll || event.touches.length !== 1) { return; }
+        event.stopPropagation();
+        event.preventDefault();
+        area.scrollTop = clipTouchScroll.startTop + (clipTouchScroll.startY - event.touches[0].clientY);
+      }
+
+      function endClipTouchScroll() {
+        clipTouchScroll = null;
+      }
+
+      function installClipTouchScroll() {
+        var area = getClipTextArea();
+        if (!area || area.getAttribute('data-clip-scroll-installed') === '1') { return; }
+        area.setAttribute('data-clip-scroll-installed', '1');
+        area.addEventListener('touchstart', beginClipTouchScroll, { passive: true });
+        area.addEventListener('touchmove', moveClipTouchScroll, { passive: false });
+        area.addEventListener('touchend', endClipTouchScroll, { passive: true });
+        area.addEventListener('touchcancel', endClipTouchScroll, { passive: true });
+      }
+
       function toggleSelMode() {
         if (document.body.classList.contains('pb-sel-mode')) {
           closeClipPanel();
@@ -958,7 +1000,17 @@
         }
         var selected = (termRef && typeof termRef.getSelection === 'function')
           ? termRef.getSelection() : '';
-        openClipPanel('select', selected || collectBufferText());
+        if (selected) {
+          openClipPanel('select', selected);
+          return;
+        }
+        // Load tmux scrollback history so the user can scroll backward through it.
+        fetch('/api/terminals/capture?lines=5000', { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            openClipPanel('select', (data && data.text) ? data.text : collectBufferText());
+          })
+          .catch(function () { openClipPanel('select', collectBufferText()); });
       }
 
       function selectedPanelText() {
@@ -1186,6 +1238,7 @@
       });
 
       installTerminalTouchScroll();
+      installClipTouchScroll();
       installKeyboardInsetHandler();
 
       var _pinchDist0 = 0;
