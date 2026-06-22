@@ -110,6 +110,10 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   keyboard from appearing on focus while still enabling touch-scroll and text
   selection. Do not focus without setting `inputmode="none"` first — the prior
   lesson about not auto-focusing still applies (bare focus causes aggressive zoom).
+- Do not rely only on native fixed-position textarea scrolling for the WebTerm
+  select panel. Keep the textarea font at or above 16px and install an explicit
+  touch-scroll handler on the clip textarea so iOS can scroll the panel even
+  when its native fixed-textarea behavior is unreliable.
 - When the web terminal uses both static pages and a loopback API, install and rebuild flows must deploy them together. Rebuilding only ttyd leaves the home page and live-terminal state UI stale even if the terminal itself updates.
 - When a rebuild script is likely to be run from inside WebTerm, restart
   `ttyd` last. Restarting `ttyd` kills the browser terminal that is running the
@@ -128,6 +132,7 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   Toolbar WebSocket interception should preserve ttyd's chosen base path and
   let Caddy handle the strip-prefix behavior.
 - When using per-browser grouped tmux sessions, sync the disconnecting session's current window back to the base session before killing it. Otherwise every reconnect starts from the base session's stale default window, usually `0`.
+- Keep `WEBTERM_TMUX_SESSION` explicit in local `settings.env` and aligned with downstream launchers such as `session-control`. If WebTerm opens a plain shell while another tool created the intended window, inspect the live `ttyd.service` and `pit-box-api.service` `ExecStart` lines; a stale generated unit may still attach browsers/API calls to the old base tmux session.
 - The canonical private hostnames for `pit-box` browser/admin surfaces belong in
   the sibling `wiring-harness` site registry. `settings.env` can keep local
   overrides for emergencies, but render/install flows should resolve

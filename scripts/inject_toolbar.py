@@ -174,7 +174,7 @@ body.pb-sel-mode .xterm canvas {
   border: 1px solid #30363d;
   border-radius: 8px;
   font-family: ui-monospace, monospace;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.4;
   user-select: text;
   -webkit-user-select: text;
@@ -306,6 +306,7 @@ WS_INTERCEPTOR = """\
   var keyboardInsetTimer = null;
   var lastKeyboardOffset = -1;
   var tmuxCopyModeLikely = false;
+  var clipTouchScroll = null;
   var KEY_ESC = '\\x1b';
   var KEY_PAGE_UP = '\\x1b[5~';
   var KEY_PAGE_DOWN = '\\x1b[6~';
@@ -481,7 +482,10 @@ WS_INTERCEPTOR = """\
     var panel = getClipPanel();
     if (panel && panel.classList.contains('pb-open')) {
       var area = getClipTextArea();
-      if (area) { area.style.fontSize = Math.max(16, next) + 'px'; }
+      if (area) {
+        var panelMode = panel.getAttribute('data-mode');
+            area.style.fontSize = Math.max(16, next) + 'px';
+      }
     }
     scheduleTerminalResize();
   }
@@ -906,7 +910,7 @@ WS_INTERCEPTOR = """\
     }
     var buffer = termRef.buffer.active;
     var lines = [];
-    var start = Math.max(0, buffer.length - 2000);
+    var start = Math.max(0, buffer.length - 5000);
     for (var i = start; i < buffer.length; i += 1) {
       var line = buffer.getLine(i);
       if (line && typeof line.translateToString === 'function') {
@@ -987,6 +991,37 @@ WS_INTERCEPTOR = """\
     setViewportScalable(false);
   }
 
+  function beginClipTouchScroll(event) {
+    var area = getClipTextArea();
+    if (!area || event.touches.length !== 1) { return; }
+    clipTouchScroll = {
+      startY: event.touches[0].clientY,
+      startTop: area.scrollTop
+    };
+  }
+
+  function moveClipTouchScroll(event) {
+    var area = getClipTextArea();
+    if (!area || !clipTouchScroll || event.touches.length !== 1) { return; }
+    event.stopPropagation();
+    event.preventDefault();
+    area.scrollTop = clipTouchScroll.startTop + (clipTouchScroll.startY - event.touches[0].clientY);
+  }
+
+  function endClipTouchScroll() {
+    clipTouchScroll = null;
+  }
+
+  function installClipTouchScroll() {
+    var area = getClipTextArea();
+    if (!area || area.getAttribute('data-clip-scroll-installed') === '1') { return; }
+    area.setAttribute('data-clip-scroll-installed', '1');
+    area.addEventListener('touchstart', beginClipTouchScroll, { passive: true });
+    area.addEventListener('touchmove', moveClipTouchScroll, { passive: false });
+    area.addEventListener('touchend', endClipTouchScroll, { passive: true });
+    area.addEventListener('touchcancel', endClipTouchScroll, { passive: true });
+  }
+
   function toggleSelMode() {
     if (document.body.classList.contains('pb-sel-mode')) {
       closeClipPanel();
@@ -999,7 +1034,7 @@ WS_INTERCEPTOR = """\
       return;
     }
     // Load tmux scrollback history so the user can scroll backward through it.
-    fetch('/api/terminals/capture', { cache: 'no-store' })
+    fetch('/api/terminals/capture?lines=5000', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         openClipPanel('select', (data && data.text) ? data.text : collectBufferText());
@@ -1235,6 +1270,7 @@ WS_INTERCEPTOR = """\
   });
 
   installTerminalTouchScroll();
+  installClipTouchScroll();
   installKeyboardInsetHandler();
 
   // Pinch-to-zoom (terminal font only; skip when clip panel is open so native
