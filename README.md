@@ -8,6 +8,7 @@ A starter repository for reaching a home Linux server from an iPhone **from anyw
 - **SSH** for administration
 - **SMB** or other internal services over the VPN
 - Optional **web UIs** only **behind** the VPN
+- Optional Android **AirPlay receiver control** through the existing mTLS API
 
 This repo packages the design from the conversation into a reusable setup scaffold.
 
@@ -71,6 +72,13 @@ install the share-bind watchdog, and verify the bind state. The action preserves
 Snowbridge's intended layout, including `receipt/intake` under the receipt
 folder rather than a top-level `intake` share.
 
+## AirPlay Receiver Control
+
+The WebTerm home page can start, stop, and inspect an Android AirPlay receiver
+through the loopback-only pit-box API. This is disabled by default. See
+[`docs/airplay-control-plane.md`](docs/airplay-control-plane.md) for controller,
+site-to-site routing, mDNS discovery, and guest-isolation requirements.
+
 ## Architecture
 
 ```text
@@ -89,6 +97,7 @@ Linux Server (WireGuard endpoint, SSH server)
   ├── SSH to 10.8.0.1
   ├── RDP/xrdp to 10.8.0.1:3389 (VPN-only, optional)
   ├── Web Terminal (ttyd) at http://10.8.0.1:7681 (VPN-only)
+  ├── AirPlay receiver control via loopback API (optional)
   ├── SMB to 192.168.1.x or 10.8.0.1
   └── Optional Cockpit / other web UIs only over VPN
 ```

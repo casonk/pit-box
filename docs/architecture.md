@@ -9,6 +9,7 @@ iPhone --WireGuard--> home router (UDP 51820) --> Linux server
                                                ├── SSH
                                                ├── optional RDP/xrdp
                                                ├── SMB
+                                               ├── optional AirPlay controller
                                                └── optional internal-only web UIs
 ```
 
@@ -45,6 +46,15 @@ established.
 ### Local host
 System services remain bound to LAN or all interfaces as configured locally, but exposure is controlled by the firewall and network path.
 
+### Android AirPlay receiver
+
+The browser control request terminates at the existing mTLS Caddy endpoint and
+is forwarded to the loopback API. Only that API invokes ADB. AirPlay media and
+mDNS discovery are separate routed paths; strict tunnel-only casting requires
+the TV to reside on an isolated network reachable from WireGuard but denied to
+guest and ordinary LAN subnets. See
+[`airplay-control-plane.md`](airplay-control-plane.md).
+
 ## Components
 
 - WireGuard
@@ -53,6 +63,7 @@ System services remain bound to LAN or all interfaces as configured locally, but
 - Linux firewall
 - Optional SMB server
 - Optional internal web UI
+- Optional Android AirPlay receiver controller
 
 ## Manual external dependencies
 

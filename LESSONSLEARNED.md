@@ -12,6 +12,15 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
 
 ## Lessons
 
+- Tracked example network values must be intentionally non-routable and must
+  not match deployment values. Use IANA documentation ranges and enforce that
+  boundary in validation; merely choosing a different private-LAN address is
+  not a durable safeguard.
+- A remote AirPlay control API and remote AirPlay casting are separate paths.
+  Keep ADB reachable only by the controller host; route AirPlay media to an
+  isolated TV network and reflect mDNS only across the trusted WireGuard and TV
+  interfaces. An HTTPS API does not make routed AirPlay discovery work and
+  cannot prevent same-LAN guests from contacting the receiver.
 - User-run privileged recovery workflows exposed through WebTerm should appear as
   a single guarded home-page button whenever practical. The button should call a
   narrow API endpoint that runs one ordered command and reports its output, not

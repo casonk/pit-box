@@ -279,6 +279,17 @@
     <div id="ext-services-grid" class="btn-row" style="margin-bottom:0"></div>
   </div>
 
+  <div class="section" id="airplay-section">
+    <div class="section-head">
+      <div class="section-label">AirPlay receiver</div>
+      <div class="section-count" id="airplay-status">checking…</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-green" data-airplay-action="start">Start</button>
+      <button class="btn btn-gray" data-airplay-action="stop">Stop</button>
+    </div>
+  </div>
+
   <div class="section">
     <div class="section-head">
       <div class="section-label">Services</div>
@@ -681,6 +692,39 @@
         .catch(function () {});
     }
 
+    function loadAirPlayStatus() {
+      fetch('/api/airplay/status', { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var label = document.getElementById('airplay-status');
+          if (!data.configured) {
+            label.textContent = 'not configured';
+          } else if (!data.ok) {
+            label.textContent = 'unreachable';
+          } else {
+            label.textContent = data.running ? 'on' : 'off';
+          }
+        })
+        .catch(function () {
+          document.getElementById('airplay-status').textContent = 'unavailable';
+        });
+    }
+
+    document.getElementById('airplay-section').addEventListener('click', function (event) {
+      var button = event.target.closest('[data-airplay-action]');
+      if (!button) { return; }
+      button.disabled = true;
+      fetch('/api/airplay/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: button.getAttribute('data-airplay-action') })
+      }).then(function () {
+        loadAirPlayStatus();
+      }).catch(loadAirPlayStatus).finally(function () {
+        button.disabled = false;
+      });
+    });
+
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) { loadState(); }
     });
@@ -688,6 +732,7 @@
     window.setInterval(loadState, 4000);
     loadState();
     loadEnv();
+    loadAirPlayStatus();
   }());
   </script>
 </body>
