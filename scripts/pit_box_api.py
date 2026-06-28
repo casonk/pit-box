@@ -10,6 +10,8 @@ Endpoints:
   POST   /api/rebuild          - run rebuild_webservices.sh via sudo -S (password in body)
   POST   /api/promote          - render prod configs then rebuild all prod services (one password)
   POST   /api/snowbridge/repair - repair Snowbridge share mounts and watchdog (one password)
+  GET    /api/airplay/status    - report the configured Android AirPlay receiver state
+  POST   /api/airplay/control   - start or stop the configured Android AirPlay receiver
   POST   /api/task             - run a no-sudo pit-box script (task name in body)
   DELETE /api/windows/<n>      - kill tmux window N
 """
@@ -27,6 +29,8 @@ DEFAULT_ENV_LABEL      = ""
 DEFAULT_SIBLING_URL    = ""
 DEFAULT_COCKPIT_URL    = ""
 DEFAULT_DESKTOP_URL    = ""
+DEFAULT_AIRPLAY_ADB_TARGET = ""
+DEFAULT_AIRPLAY_PACKAGE = "io.github.jqssun.airplay"
 
 SESSION        = DEFAULT_SESSION         # set in main()
 REBUILD_SCRIPT = DEFAULT_REBUILD_SCRIPT  # set in main()
@@ -35,6 +39,8 @@ ENV_LABEL      = DEFAULT_ENV_LABEL       # set in main()
 SIBLING_URL    = DEFAULT_SIBLING_URL     # set in main()
 COCKPIT_URL    = DEFAULT_COCKPIT_URL     # set in main()
 DESKTOP_URL    = DEFAULT_DESKTOP_URL     # set in main()
+AIRPLAY_ADB_TARGET = DEFAULT_AIRPLAY_ADB_TARGET
+AIRPLAY_PACKAGE = DEFAULT_AIRPLAY_PACKAGE
 
 
 def tmux(*args) -> subprocess.CompletedProcess:
@@ -243,6 +249,66 @@ def repair_snowbridge(password: str) -> dict:
     return {"ok": r.returncode == 0, "output": "\n".join(lines[-40:])}
 
 
+def _adb(*args: str, timeout: int = 10) -> subprocess.CompletedProcess:
+    if not AIRPLAY_ADB_TARGET:
+        raise RuntimeError("AirPlay control is not configured")
+    return subprocess.run(
+        ["adb", "-s", AIRPLAY_ADB_TARGET, *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+def airplay_status() -> dict:
+    if not AIRPLAY_ADB_TARGET:
+        return {"ok": False, "configured": False, "running": False}
+    try:
+        state = _adb("get-state")
+        if state.returncode != 0:
+            return {
+                "ok": False,
+                "configured": True,
+                "running": False,
+                "error": "ADB target is unreachable",
+            }
+        process = _adb("shell", "pidof", AIRPLAY_PACKAGE)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        return {
+            "ok": False,
+            "configured": True,
+            "running": False,
+            "error": str(exc),
+        }
+    return {
+        "ok": True,
+        "configured": True,
+        "running": process.returncode == 0 and bool(process.stdout.strip()),
+    }
+
+
+def control_airplay(action: str) -> dict:
+    if action not in {"start", "stop"}:
+        return {"ok": False, "error": f"unknown AirPlay action: {action!r}"}
+    if not AIRPLAY_ADB_TARGET:
+        return {"ok": False, "error": "AirPlay control is not configured"}
+    try:
+        if action == "start":
+            result = _adb(
+                "shell", "monkey", "-p", AIRPLAY_PACKAGE,
+                "-c", "android.intent.category.LAUNCHER", "1",
+            )
+        else:
+            result = _adb("shell", "am", "force-stop", AIRPLAY_PACKAGE)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        return {"ok": False, "error": str(exc)}
+    if result.returncode != 0:
+        return {"ok": False, "error": f"ADB {action} command failed"}
+    status = airplay_status()
+    status["action"] = action
+    return status
+
+
 def run_task(task: str) -> dict:
     if task not in _TASK_SCRIPTS:
         return {"ok": False, "error": f"unknown task: {task!r}"}
@@ -342,6 +408,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == "/api/windows":
             self._send(200, list_windows())
             return
+        if self.path == "/api/airplay/status":
+            result = airplay_status()
+            self._send(200 if result["ok"] or not result["configured"] else 503, result)
+            return
         if self.path.startswith("/api/terminals/capture"):
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(self.path).query)
@@ -411,6 +481,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             result = repair_snowbridge(password)
             self._send(200, result)
             return
+        if self.path == "/api/airplay/control":
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                self._send(400, {"error": "invalid json body"})
+                return
+            result = control_airplay(str(payload.get("action", "")))
+            self._send(200 if result["ok"] else 503, result)
+            return
         if self.path == "/api/task":
             payload = self._read_json()
             if not isinstance(payload, dict):
@@ -441,6 +519,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 def main():
     global SESSION, REBUILD_SCRIPT, SETTINGS_FILE
     global ENV_LABEL, SIBLING_URL, COCKPIT_URL, DESKTOP_URL
+    global AIRPLAY_ADB_TARGET, AIRPLAY_PACKAGE
     p = argparse.ArgumentParser()
     p.add_argument("--port",           type=int, default=DEFAULT_PORT)
     p.add_argument("--session",        default=DEFAULT_SESSION)
@@ -456,6 +535,10 @@ def main():
                    help="Full URL to the Cockpit web UI (shown on homepage if set)")
     p.add_argument("--desktop-url",    default=DEFAULT_DESKTOP_URL,
                    help="Full URL to the Guacamole desktop UI (shown on homepage if set)")
+    p.add_argument("--airplay-adb-target", default=DEFAULT_AIRPLAY_ADB_TARGET,
+                   help="ADB serial for the Android AirPlay receiver; empty disables control")
+    p.add_argument("--airplay-package", default=DEFAULT_AIRPLAY_PACKAGE,
+                   help="Android package implementing the AirPlay receiver")
     args = p.parse_args()
     SESSION        = args.session
     REBUILD_SCRIPT = args.rebuild_script
@@ -464,6 +547,8 @@ def main():
     SIBLING_URL    = args.sibling_url
     COCKPIT_URL    = args.cockpit_url
     DESKTOP_URL    = args.desktop_url
+    AIRPLAY_ADB_TARGET = args.airplay_adb_target
+    AIRPLAY_PACKAGE = args.airplay_package
 
     server = http.server.HTTPServer(("127.0.0.1", args.port), Handler)
     print(f"pit-box API listening on 127.0.0.1:{args.port} (session={SESSION}, env={ENV_LABEL or 'unset'})")

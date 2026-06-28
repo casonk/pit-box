@@ -163,6 +163,10 @@ if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
     _api_env_args="${_api_env_args} --cockpit-url https://${COCKPIT_HOSTNAME}"
   [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" && -n "${REMOTE_DESKTOP_WEB_HOSTNAME:-}" ]] && \
     _api_env_args="${_api_env_args} --desktop-url https://${REMOTE_DESKTOP_WEB_HOSTNAME}"
+  if [[ "${AIRPLAY_CONTROL_ENABLED:-false}" == "true" ]]; then
+    : "${AIRPLAY_ADB_TARGET:?AIRPLAY_CONTROL_ENABLED=true but AIRPLAY_ADB_TARGET is not set}"
+    _api_env_args="${_api_env_args} --airplay-adb-target ${AIRPLAY_ADB_TARGET}"
+  fi
 
   mkdir -p "$BUILD_DIR/webterm"
   cat > "$BUILD_DIR/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service" <<EOF
