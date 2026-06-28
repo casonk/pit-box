@@ -12,4 +12,9 @@ Mark items `[x]` when complete and move them to Done.
 
 ## In Progress
 
+- [ ] [manual:2026-06-29] Complete AirPlay tunnel integration: establish the
+  US-server-to-home-LAN route, reflect `_airplay._tcp`/`_raop._tcp` mDNS only
+  between the WireGuard interface and the isolated TV network, and verify from
+  macbook-air, iphone13-mini, and iphone14-pro.
+
 ## Done

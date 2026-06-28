@@ -226,6 +226,15 @@ if [[ -f "$ROOT_DIR/scripts/pit_box_api.py" ]]; then
     echo "[invalid] scripts/pit_box_api.py does not expose the Snowbridge share repair action" >&2
     errors=$((errors + 1))
   fi
+  if ! grep -q '/api/airplay/control' "$ROOT_DIR/scripts/pit_box_api.py" || ! grep -q 'AIRPLAY_ADB_TARGET' "$ROOT_DIR/settings.env.example"; then
+    echo "[invalid] AirPlay control API/configuration is incomplete" >&2
+    errors=$((errors + 1))
+  fi
+  airplay_example_target="$(sed -n 's/^AIRPLAY_ADB_TARGET=//p' "$ROOT_DIR/settings.env.example")"
+  if [[ ! "$airplay_example_target" =~ ^192\.0\.2\.[0-9]+:5555$ ]]; then
+    echo "[invalid] example AIRPLAY_ADB_TARGET must use IANA TEST-NET-1, never a local/private address" >&2
+    errors=$((errors + 1))
+  fi
   if ! grep -q 'send-keys", "-t", target, "-X"' "$ROOT_DIR/scripts/pit_box_api.py"; then
     echo "[invalid] scripts/pit_box_api.py does not drive tmux copy-mode scrolling through send-keys -X" >&2
     errors=$((errors + 1))
