@@ -242,6 +242,36 @@ Point a browser (over VPN) at the hostname registered as `pit-box-webterm` in th
 `wiring-harness` site registry — for example `https://webterm.home/` — and log in with your
 local Unix credentials.
 
+### Temporary macOS Air Webterm
+
+For the temporary Air mesh host, run ttyd as a loopback-only user LaunchAgent;
+the Air-specific `wiring-harness` edge then provides the only mesh ingress with
+mTLS:
+
+```bash
+./scripts/activate_macos_air_webterm.sh
+```
+
+Use `./scripts/activate_macos_air_webterm.sh --dry-run` to review the exact
+operations first. The script requires Homebrew `ttyd`, `tmux`, `caddy`, and
+`wireguard-tools`; it uses the reviewed Air profile from `short-circuit`, then
+restarts only the two dedicated user LaunchAgents. Register `pit-box-webterm`
+in `wiring-harness/services.local.toml` with
+`macos_edge_role = "webterm"`; its reviewed endpoint is
+`https://<air-wireguard-ip>:8445/` and its backend is fixed at
+`127.0.0.1:7681`. On Air itself, use the loopback-only home page at
+`http://127.0.0.1:7680/`; it is the unified tmux window picker, and `/term` opens the toolbar terminal. The activation
+also runs the state API only on `127.0.0.1:7682`, so Home can list, open, create, and remove windows without exposing a
+second browser-facing listener. The Air Caddy renderer intentionally refuses to bind until
+the exact WireGuard `/32` is assigned to the configured `utunN` interface.
+
+To make Home switch between machines, give every Webterm entry in the shared
+`wiring-harness/services.local.toml` a distinct `terminal_host` and
+`terminal_label`. Its `terminal_home_url` is optional when the normal HTTPS
+hostname is correct; use it for an explicit VPS endpoint. The currently active
+host is set with `WEBTERM_HOST_ID` (`air` on the temporary Mac deployment).
+Every picker item opens that host's own Home and never nests an SSH session.
+
 ### 11. Validate
 
 ```bash

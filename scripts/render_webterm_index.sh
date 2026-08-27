@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TARGET="${1:-/etc/pit-box/webterm/index.html}"
 PORT="${WEBTERM_INDEX_PORT:-7699}"
 FALLBACK_INDEX="$ROOT_DIR/configs/webterm/index.html"
+REQUIRE_DYNAMIC="${WEBTERM_INDEX_REQUIRE_DYNAMIC:-false}"
 
 TTYD_BIN="$(command -v ttyd || true)"
 [[ -n "$TTYD_BIN" ]] || {
@@ -34,6 +35,11 @@ tmp_pid="$!"
 if python3 "$ROOT_DIR/scripts/inject_toolbar.py" --port "$PORT" --target "$TARGET"; then
   echo "[ok] rendered web terminal index at $TARGET"
   exit 0
+fi
+
+if [[ "$REQUIRE_DYNAMIC" == "true" ]]; then
+  echo "Dynamic ttyd index generation is required when WEBTERM_INDEX_REQUIRE_DYNAMIC=true." >&2
+  exit 1
 fi
 
 [[ -f "$FALLBACK_INDEX" ]] || {
