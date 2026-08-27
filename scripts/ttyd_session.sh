@@ -5,6 +5,11 @@
 # next reconnect does not snap back to window 0.
 set -euo pipefail
 
+# launchd starts user agents with a minimal PATH that excludes Homebrew. Keep
+# the terminal multiplexer explicit so the same session wrapper works on the
+# temporary macOS Air deployment as well as Linux hosts.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+
 BASE_SESSION="${1:-pit-box}"
 
 # Ensure the base session exists (no-op if already running).

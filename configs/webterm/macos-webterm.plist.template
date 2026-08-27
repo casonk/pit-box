@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>Label</key>
+	<string>dev.user.pit-box.webterm</string>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>TTYD_BINARY</string>
+		<string>--writable</string>
+		<string>--interface</string>
+		<string>127.0.0.1</string>
+		<string>--port</string>
+		<string>WEBTERM_PORT</string>
+		<string>--ping-interval</string>
+		<string>30</string>
+		<string>--index</string>
+		<string>WEBTERM_INDEX</string>
+		<string>TTYD_SESSION_SCRIPT</string>
+		<string>WEBTERM_TMUX_SESSION</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>WEBTERM_LOG_DIR/ttyd.stderr.log</string>
+	<key>StandardOutPath</key>
+	<string>WEBTERM_LOG_DIR/ttyd.stdout.log</string>
+	<key>ThrottleInterval</key>
+	<integer>15</integer>
+	<key>Umask</key>
+	<integer>63</integer>
+	<key>WorkingDirectory</key>
+	<string>PIT_BOX_ROOT</string>
+</dict>
+</plist>

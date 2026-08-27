@@ -41,12 +41,17 @@ check_file "$ROOT_DIR/scripts/harden_ssh.sh"
 check_file "$ROOT_DIR/scripts/package_client.sh"
 check_file "$ROOT_DIR/scripts/inject_toolbar.py"
 check_file "$ROOT_DIR/scripts/render_webterm_index.sh"
+check_file "$ROOT_DIR/scripts/render_webterm_hosts.py"
+check_file "$ROOT_DIR/scripts/render_macos_webterm_launch_agent.sh"
+check_file "$ROOT_DIR/scripts/activate_macos_air_webterm.sh"
 check_file "$ROOT_DIR/scripts/ttyd_session.sh"
 check_file "$ROOT_DIR/scripts/pit_box_api.py"
 check_file "$ROOT_DIR/configs/webterm/ttyd.service.example"
 check_file "$ROOT_DIR/configs/webterm/pit-box-api.service.example"
 check_file "$ROOT_DIR/configs/webterm/dnsmasq-vpn.conf.example"
 check_file "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"
+check_file "$ROOT_DIR/configs/webterm/macos-webterm.plist.template"
+check_file "$ROOT_DIR/configs/webterm/macos-pit-box-api.plist.template"
 check_file "$ROOT_DIR/configs/webterm/home.html"
 check_file "$ROOT_DIR/configs/webterm/index.html"
 check_file "$ROOT_DIR/configs/remote-desktop/xrdp.ini.example"
@@ -205,6 +210,40 @@ if [[ -f "$ROOT_DIR/scripts/ttyd_session.sh" ]]; then
   fi
   if ! grep -q 'select-window -t "\$BASE_SESSION:\$current_window"' "$ROOT_DIR/scripts/ttyd_session.sh"; then
     echo "[invalid] scripts/ttyd_session.sh does not restore the base session window on reconnect" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/activate_macos_air_webterm.sh" ]]; then
+  if ! grep -q 'render_macos_private_edge.py.*--validate-caddy' "$ROOT_DIR/scripts/activate_macos_air_webterm.sh"; then
+    echo "[invalid] scripts/activate_macos_air_webterm.sh does not validate the exact Air Caddy edge" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q -- '--interface' "$ROOT_DIR/configs/webterm/macos-webterm.plist.template" || ! grep -q '127.0.0.1' "$ROOT_DIR/configs/webterm/macos-webterm.plist.template"; then
+    echo "[invalid] macOS Webterm LaunchAgent is not loopback-only" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/render_macos_webterm_launch_agent.sh" ]]; then
+  if ! grep -q 'WEBTERM_INDEX_REQUIRE_DYNAMIC=true' "$ROOT_DIR/scripts/render_macos_webterm_launch_agent.sh"; then
+    echo "[invalid] scripts/render_macos_webterm_launch_agent.sh does not render the WebTerm toolbar page" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q -- '--index' "$ROOT_DIR/configs/webterm/macos-webterm.plist.template"; then
+    echo "[invalid] macOS Webterm LaunchAgent does not serve the toolbar page as ttyd's custom index" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q '127.0.0.1:7682' "$ROOT_DIR/../wiring-harness/scripts/render_macos_private_edge.py"; then
+    echo "[invalid] Air Caddy renderer does not route the Webterm state API to its loopback backend" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'webterm-api' "$ROOT_DIR/scripts/activate_macos_air_webterm.sh"; then
+    echo "[invalid] Air Webterm activation does not start the terminal-state API" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'render_webterm_hosts.py' "$ROOT_DIR/scripts/render_macos_webterm_launch_agent.sh"; then
+    echo "[invalid] Air Webterm LaunchAgent does not render terminal host targets" >&2
     errors=$((errors + 1))
   fi
 fi

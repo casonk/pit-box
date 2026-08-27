@@ -40,6 +40,7 @@ source "$SETTINGS_FILE"
 WEBTERM_ENV_SUFFIX="${WEBTERM_ENV_SUFFIX:-}"
 WEBTERM_TMUX_SESSION="${WEBTERM_TMUX_SESSION:-pit-box}"
 WEBTERM_SIBLING_URL="${WEBTERM_SIBLING_URL:-}"
+WEBTERM_HOST_ID="${WEBTERM_HOST_ID:-home}"
 # Auto-derive env label from suffix when not explicitly set.
 if [[ -n "${WEBTERM_ENV_LABEL:-}" ]]; then
   :
@@ -155,9 +156,10 @@ if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
   : "${WEBTERM_USER:?WEBTERM_ENABLED=true but WEBTERM_USER is not set}"
   : "${CADDY_CERTS_DIR:?WEBTERM_ENABLED=true but CADDY_CERTS_DIR is not set}"
   WEBTERM_API_PORT=$((WEBTERM_PORT + 1))
+  TERMINAL_HOSTS_FILE="$BUILD_DIR/webterm/terminal-hosts${WEBTERM_ENV_SUFFIX}.json"
 
   # Build optional env args for the API ExecStart line.
-  _api_env_args="--env-label ${WEBTERM_ENV_LABEL}"
+  _api_env_args="--env-label ${WEBTERM_ENV_LABEL} --terminal-hosts-file /etc/pit-box${WEBTERM_ENV_SUFFIX}/webterm/terminal-hosts.json"
   [[ -n "$WEBTERM_SIBLING_URL" ]] && _api_env_args="${_api_env_args} --sibling-url ${WEBTERM_SIBLING_URL}"
   [[ "${COCKPIT_ENABLED:-false}" == "true" && -n "${COCKPIT_HOSTNAME:-}" ]] && \
     _api_env_args="${_api_env_args} --cockpit-url https://${COCKPIT_HOSTNAME}"
@@ -169,6 +171,11 @@ if [[ "${WEBTERM_ENABLED:-false}" == "true" ]]; then
   fi
 
   mkdir -p "$BUILD_DIR/webterm"
+  python3 "$ROOT_DIR/scripts/render_webterm_hosts.py" \
+    --services "${PIT_BOX_WIRING_HARNESS_REPO:-$ROOT_DIR/../wiring-harness}/services.toml" \
+    --current-id "$WEBTERM_HOST_ID" \
+    --current-url "https://${WEBTERM_HOSTNAME}/" \
+    --output "$TERMINAL_HOSTS_FILE"
   cat > "$BUILD_DIR/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service" <<EOF
 [Unit]
 Description=ttyd - Web Terminal over WireGuard VPN${WEBTERM_ENV_SUFFIX}

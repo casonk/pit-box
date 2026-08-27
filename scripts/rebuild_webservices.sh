@@ -88,6 +88,7 @@ rebuild_ttyd() {
   ensure_package tmux
   mkdir -p "${INSTALL_BASE}/webterm"
   cp "$ROOT_DIR/configs/webterm/home.html" "${INSTALL_BASE}/webterm/home.html"
+  install -m 0644 "$ROOT_DIR/build/webterm/terminal-hosts${WEBTERM_ENV_SUFFIX}.json" "${INSTALL_BASE}/webterm/terminal-hosts.json"
   install -m 0755 "$ROOT_DIR/scripts/ttyd_session.sh" "${INSTALL_BASE}/ttyd_session.sh"
   install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" "${INSTALL_BASE}/pit_box_api.py"
   "$ROOT_DIR/scripts/render_webterm_index.sh" "${INSTALL_BASE}/webterm/index.html"
