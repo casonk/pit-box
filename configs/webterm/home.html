@@ -245,6 +245,13 @@
     </div>
   </div>
 
+  <div class="section" id="hosts-section" style="display:none">
+    <div class="section-head">
+      <div class="section-label">Terminal host</div>
+    </div>
+    <div class="btn-row" id="hosts-grid"></div>
+  </div>
+
   <a class="btn btn-green" href="/term" id="btn-open">Open Terminal</a>
   <div class="btn-row">
     <button class="btn btn-gray" id="btn-new">+ New Window</button>
@@ -452,6 +459,22 @@
             .then(renderState)
             .catch(function () { renderState({ windows: [], terminals: [] }); });
         });
+    }
+
+    function loadHosts() {
+      readJson('/api/hosts', { cache: 'no-store' }).then(function (data) {
+        var hosts = data.hosts || [];
+        if (!hosts.length) { return; }
+        var section = document.getElementById('hosts-section');
+        var grid = document.getElementById('hosts-grid');
+        grid.innerHTML = hosts.map(function (host) {
+          if (host.current) {
+            return '<span class="btn btn-green" aria-current="page">' + esc(host.label) + '</span>';
+          }
+          return '<a class="btn btn-gray" href="' + esc(host.url) + '">' + esc(host.label) + '</a>';
+        }).join('');
+        section.style.display = 'block';
+      }).catch(function () {});
     }
 
     document.getElementById('win-grid').addEventListener('click', function (event) {
@@ -731,6 +754,7 @@
 
     window.setInterval(loadState, 4000);
     loadState();
+    loadHosts();
     loadEnv();
     loadAirPlayStatus();
   }());

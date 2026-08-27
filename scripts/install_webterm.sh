@@ -15,6 +15,8 @@ CADDYFILE="/etc/caddy/Caddyfile"
 HTML_TARGET="/etc/pit-box/webterm/index.html"
 HOME_SOURCE="$ROOT_DIR/configs/webterm/home.html"
 HOME_TARGET="/etc/pit-box/webterm/home.html"
+HOSTS_SOURCE="$ROOT_DIR/build/webterm/terminal-hosts.json"
+HOSTS_TARGET="/etc/pit-box/webterm/terminal-hosts.json"
 TTYD_SESSION_TARGET="/etc/pit-box/ttyd_session.sh"
 API_SCRIPT_TARGET="/etc/pit-box/pit_box_api.py"
 
@@ -38,7 +40,7 @@ populate_site_hostname "$ROOT_DIR" "pit-box-webterm" WEBTERM_HOSTNAME
 : "${WEBTERM_PORT:?Missing WEBTERM_PORT}"
 : "${WEBTERM_HOSTNAME:?Missing WEBTERM_HOSTNAME}"
 
-for src in "$SERVICE_SOURCE" "$API_SERVICE_SOURCE" "$DNS_CONF_SOURCE" "$CADDY_CONF_SOURCE" "$HOME_SOURCE"; do
+for src in "$SERVICE_SOURCE" "$API_SERVICE_SOURCE" "$DNS_CONF_SOURCE" "$CADDY_CONF_SOURCE" "$HOME_SOURCE" "$HOSTS_SOURCE"; do
   if [[ ! -f "$src" ]]; then
     echo "Missing rendered file: $src" >&2
     echo "Run ./scripts/render_configs.sh first." >&2
@@ -57,6 +59,7 @@ fi
 
 mkdir -p /etc/pit-box/webterm
 cp "$HOME_SOURCE" "$HOME_TARGET"
+install -m 0644 "$HOSTS_SOURCE" "$HOSTS_TARGET"
 "$ROOT_DIR/scripts/render_webterm_index.sh" "$HTML_TARGET"
 install -m 0755 "$ROOT_DIR/scripts/ttyd_session.sh" "$TTYD_SESSION_TARGET"
 install -m 0755 "$ROOT_DIR/scripts/pit_box_api.py" "$API_SCRIPT_TARGET"

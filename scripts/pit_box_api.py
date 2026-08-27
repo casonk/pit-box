@@ -19,7 +19,9 @@ import argparse
 import http.server
 import json
 import os
+import shutil
 import subprocess
+from pathlib import Path
 
 DEFAULT_PORT           = 7682
 DEFAULT_SESSION        = "pit-box"
@@ -31,6 +33,7 @@ DEFAULT_COCKPIT_URL    = ""
 DEFAULT_DESKTOP_URL    = ""
 DEFAULT_AIRPLAY_ADB_TARGET = ""
 DEFAULT_AIRPLAY_PACKAGE = "io.github.jqssun.airplay"
+DEFAULT_TERMINAL_HOSTS_FILE = ""
 
 SESSION        = DEFAULT_SESSION         # set in main()
 REBUILD_SCRIPT = DEFAULT_REBUILD_SCRIPT  # set in main()
@@ -41,13 +44,40 @@ COCKPIT_URL    = DEFAULT_COCKPIT_URL     # set in main()
 DESKTOP_URL    = DEFAULT_DESKTOP_URL     # set in main()
 AIRPLAY_ADB_TARGET = DEFAULT_AIRPLAY_ADB_TARGET
 AIRPLAY_PACKAGE = DEFAULT_AIRPLAY_PACKAGE
+TERMINAL_HOSTS: list[dict] = []
+
+
+TMUX_BINARY = os.environ.get("PIT_BOX_TMUX_BINARY") or shutil.which("tmux") or "/opt/homebrew/bin/tmux"
 
 
 def tmux(*args) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["tmux", *args],
+        [TMUX_BINARY, *args],
         capture_output=True, text=True,
     )
+
+
+def load_terminal_hosts(path: str) -> list[dict]:
+    if not path:
+        return []
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+        hosts = raw["hosts"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ValueError(f"invalid terminal hosts file: {exc}") from exc
+    if not isinstance(hosts, list):
+        raise ValueError("terminal hosts must be a list")
+    normalized: list[dict] = []
+    for item in hosts:
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not isinstance(item.get("label"), str):
+            raise ValueError("terminal host entries need string id and label")
+        url = item.get("url")
+        if not isinstance(url, str) or not url.startswith(("http://", "https://")):
+            raise ValueError("terminal host entries need an absolute http(s) URL")
+        normalized.append({"id": item["id"], "label": item["label"], "url": url, "current": bool(item.get("current"))})
+    if normalized and sum(host["current"] for host in normalized) != 1:
+        raise ValueError("terminal hosts must identify exactly one current host")
+    return normalized
 
 
 def list_windows():
@@ -405,6 +435,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == "/api/env":
             self._send(200, get_env())
             return
+        if self.path == "/api/hosts":
+            self._send(200, {"hosts": TERMINAL_HOSTS})
+            return
         if self.path == "/api/windows":
             self._send(200, list_windows())
             return
@@ -519,7 +552,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 def main():
     global SESSION, REBUILD_SCRIPT, SETTINGS_FILE
     global ENV_LABEL, SIBLING_URL, COCKPIT_URL, DESKTOP_URL
-    global AIRPLAY_ADB_TARGET, AIRPLAY_PACKAGE
+    global AIRPLAY_ADB_TARGET, AIRPLAY_PACKAGE, TERMINAL_HOSTS
     p = argparse.ArgumentParser()
     p.add_argument("--port",           type=int, default=DEFAULT_PORT)
     p.add_argument("--session",        default=DEFAULT_SESSION)
@@ -539,6 +572,8 @@ def main():
                    help="ADB serial for the Android AirPlay receiver; empty disables control")
     p.add_argument("--airplay-package", default=DEFAULT_AIRPLAY_PACKAGE,
                    help="Android package implementing the AirPlay receiver")
+    p.add_argument("--terminal-hosts-file", default=DEFAULT_TERMINAL_HOSTS_FILE,
+                   help="Rendered JSON list of Webterm Home targets")
     args = p.parse_args()
     SESSION        = args.session
     REBUILD_SCRIPT = args.rebuild_script
@@ -549,6 +584,7 @@ def main():
     DESKTOP_URL    = args.desktop_url
     AIRPLAY_ADB_TARGET = args.airplay_adb_target
     AIRPLAY_PACKAGE = args.airplay_package
+    TERMINAL_HOSTS = load_terminal_hosts(args.terminal_hosts_file)
 
     server = http.server.HTTPServer(("127.0.0.1", args.port), Handler)
     print(f"pit-box API listening on 127.0.0.1:{args.port} (session={SESSION}, env={ENV_LABEL or 'unset'})")

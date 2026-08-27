@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>Label</key>
+	<string>dev.user.pit-box.webterm-api</string>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>PYTHON_BINARY</string>
+		<string>PIT_BOX_API_SCRIPT</string>
+		<string>--port</string>
+		<string>WEBTERM_API_PORT</string>
+		<string>--session</string>
+		<string>WEBTERM_TMUX_SESSION</string>
+		<string>--env-label</string>
+		<string>air</string>
+		<string>--terminal-hosts-file</string>
+		<string>WEBTERM_HOSTS_FILE</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>WEBTERM_LOG_DIR/pit-box-api.stderr.log</string>
+	<key>StandardOutPath</key>
+	<string>WEBTERM_LOG_DIR/pit-box-api.stdout.log</string>
+	<key>ThrottleInterval</key>
+	<integer>15</integer>
+	<key>Umask</key>
+	<integer>63</integer>
+	<key>WorkingDirectory</key>
+	<string>PIT_BOX_ROOT</string>
+</dict>
+</plist>

@@ -179,3 +179,7 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   than only prod literals. Dev/prod Quadlet names such as
   `pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service` should remain verifiable
   without causing false validation failures.
+- A Webterm host switcher should navigate to the selected host's own Home
+  dashboard, not open raw ttyd or create an implicit SSH hop. Render its
+  labels and mTLS URLs from the shared Wiring Harness service registry so the
+  selector, DNS, and certificate inventory cannot drift.
