@@ -5,5 +5,7 @@ skinparam componentStyle rectangle
 rectangle "export_remote_desktop_password_to_keepass\n1 python file" as export_remote_desktop_password_to_keepass
 rectangle "inject_toolbar\n1 python file" as inject_toolbar
 rectangle "pit_box_api\n1 python file" as pit_box_api
+rectangle "render_webterm_hosts\n1 python file" as render_webterm_hosts
 rectangle "resolve_remote_desktop_password\n1 python file" as resolve_remote_desktop_password
+rectangle "store_guacamole_hash\n1 python file" as store_guacamole_hash
 @enduml
