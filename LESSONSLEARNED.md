@@ -183,3 +183,14 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   dashboard, not open raw ttyd or create an implicit SSH hop. Render its
   labels and mTLS URLs from the shared Wiring Harness service registry so the
   selector, DNS, and certificate inventory cannot drift.
+- `render_configs.sh` / `generate_keys.sh` only support one WireGuard client
+  peer. A break-glass backup peer does not require refactoring that pipeline
+  into multi-peer support: generate a standalone keypair (`wg genkey`/`wg
+  pubkey`, no root needed) into `secrets/backup.*`, hand-render its client
+  `.conf` from the existing server pubkey/endpoint/settings, and document the
+  allocated tunnel IP in `secrets/README.md` instead of wiring it into the
+  tracked render pipeline. It still must be activated as a live server peer
+  (`wg set` / edit `/etc/wireguard/wg0.conf`, requires sudo) *before* it's
+  needed — a backup peer that is only staged, not active, is useless once the
+  primary client is actually lost, since there is then no remote path to add
+  a peer to the live server.
