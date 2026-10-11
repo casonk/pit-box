@@ -362,6 +362,9 @@ The expectation here is:
 - The service binds exclusively to the WireGuard tunnel IP — never to the public interface
 - It invokes `/bin/login`, so you authenticate with your local Unix username and password
 - WebSocket keepalives (`--ping-interval 30`) prevent the browser session from going idle
+- The WebTerm Caddy site clears `Alt-Svc` so mobile browsers do not try HTTP/3 for this
+  websocket-heavy page; that has been more stable over WireGuard than letting browsers
+  churn between transports
 - Only accessible from devices connected to the WireGuard VPN
 - The generated terminal page groups mobile helper keys into three bottom toolbar rows: tmux
   window controls plus a guarded `-win` current-window button; `Tab`, `Esc`, and Ctrl keys;
@@ -396,7 +399,8 @@ The expectation here is:
 - The font controls default xterm to `17pt` and update xterm's `fontSize` option directly instead
   of CSS-scaling the terminal canvas, then dispatch resize events so xterm refits to the viewport
 - A reconnect inherits the last tmux window selected by the disconnected browser terminal instead of
-  always falling back to window `0`
+  always falling back to window `0`, and disconnect cleanup removes the per-browser `pb-*`
+  grouped tmux session so stale browser tabs do not accumulate
 - The home page polls the loopback pit-box API so it can show both tmux windows and live browser
   terminals, not just the shared tmux session state
 - **dnsmasq** runs on the server's WireGuard tunnel IP, resolving `WEBTERM_HOSTNAME` locally and
