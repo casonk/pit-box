@@ -55,6 +55,7 @@ https://WEBTERM_HOSTNAME {
 	}
 
 	header {
+		Alt-Svc "clear"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "no-referrer"

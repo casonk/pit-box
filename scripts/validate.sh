@@ -195,6 +195,13 @@ if [[ -f "$ROOT_DIR/scripts/rebuild_webservices.sh" ]]; then
   fi
 fi
 
+if [[ -f "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example" ]]; then
+  if ! grep -q "Alt-Svc \"clear\"" "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example"; then
+    echo "[invalid] configs/webterm/caddy-webterm.caddy.example does not clear Alt-Svc for the WebTerm site" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
 if [[ -f "$ROOT_DIR/scripts/ttyd_session.sh" ]]; then
   if ! grep -q 'set-option -t "\$BASE_SESSION" mouse on' "$ROOT_DIR/scripts/ttyd_session.sh"; then
     echo "[invalid] scripts/ttyd_session.sh does not enable tmux mouse handling for the base WebTerm session" >&2
@@ -210,6 +217,14 @@ if [[ -f "$ROOT_DIR/scripts/ttyd_session.sh" ]]; then
   fi
   if ! grep -q 'select-window -t "\$BASE_SESSION:\$current_window"' "$ROOT_DIR/scripts/ttyd_session.sh"; then
     echo "[invalid] scripts/ttyd_session.sh does not restore the base session window on reconnect" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'trap cleanup EXIT HUP INT TERM' "$ROOT_DIR/scripts/ttyd_session.sh"; then
+    echo "[invalid] scripts/ttyd_session.sh does not trap disconnect signals for grouped-session cleanup" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'attach-session -t "\$SESS" || true' "$ROOT_DIR/scripts/ttyd_session.sh"; then
+    echo "[invalid] scripts/ttyd_session.sh can skip grouped-session cleanup when tmux attach exits on disconnect" >&2
     errors=$((errors + 1))
   fi
 fi

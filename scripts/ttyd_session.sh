@@ -23,11 +23,17 @@ SESS="pb-$$"
 tmux new-session -d -t "$BASE_SESSION" -s "$SESS"
 tmux set-option -t "$SESS" mouse on
 
+cleanup() {
+  local current_window
+
+  current_window="$(tmux display-message -p -t "$SESS" "#{window_index}" 2>/dev/null || true)"
+  if [[ "$current_window" =~ ^[0-9]+$ ]]; then
+    tmux select-window -t "$BASE_SESSION:$current_window" 2>/dev/null || true
+  fi
+  tmux kill-session -t "$SESS" 2>/dev/null || true
+}
+trap cleanup EXIT HUP INT TERM
+
 # Attach. When the WebSocket disconnects, remember the last active window so a
 # fresh grouped session inherits it on the next connect.
-tmux attach-session -t "$SESS"
-current_window="$(tmux display-message -p -t "$SESS" "#{window_index}" 2>/dev/null || true)"
-if [[ "$current_window" =~ ^[0-9]+$ ]]; then
-  tmux select-window -t "$BASE_SESSION:$current_window" 2>/dev/null || true
-fi
-tmux kill-session -t "$SESS" 2>/dev/null || true
+tmux attach-session -t "$SESS" || true

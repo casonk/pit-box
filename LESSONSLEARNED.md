@@ -140,7 +140,9 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   the browser can render a blank terminal page after the token request 404s.
   Toolbar WebSocket interception should preserve ttyd's chosen base path and
   let Caddy handle the strip-prefix behavior.
+- If WebTerm starts opening overlapping `/ws` sockets and dropping the older one while `ttyd.service` stays healthy, treat it as browser-side transport churn first. For this mTLS + WireGuard terminal page, clearing `Alt-Svc` in the WebTerm Caddy route keeps mobile browsers off HTTP/3 and has been more stable than advertising alternate transports.
 - When using per-browser grouped tmux sessions, sync the disconnecting session's current window back to the base session before killing it. Otherwise every reconnect starts from the base session's stale default window, usually `0`.
+- Per-browser WebTerm grouped tmux sessions must trap `EXIT`, `HUP`, `INT`, and `TERM`, and the `tmux attach-session` line must tolerate a disconnect exit such as SIGHUP. Otherwise `set -e` skips cleanup, stale `pb-*` sessions accumulate, and later browser reconnect behavior becomes unreliable.
 - Keep `WEBTERM_TMUX_SESSION` explicit in local `settings.env` and aligned with downstream launchers such as `session-control`. If WebTerm opens a plain shell while another tool created the intended window, inspect the live `ttyd.service` and `pit-box-api.service` `ExecStart` lines; a stale generated unit may still attach browsers/API calls to the old base tmux session.
 - The canonical private hostnames for `pit-box` browser/admin surfaces belong in
   the sibling `wiring-harness` site registry. `settings.env` can keep local
@@ -194,3 +196,28 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   needed — a backup peer that is only staged, not active, is useless once the
   primary client is actually lost, since there is then no remote path to add
   a peer to the live server.
+- The `guacamole-home` directory (`/etc/pit-box/remote-desktop/guacamole-home/`)
+  must be installed by `install_remote_desktop_gateway.sh` (or
+  `pit-box-rebuild-guacamole`). Without it the bind-mount into the container is
+  empty, Guacamole cannot write `guacamole.properties` (volume is read-only), and
+  it falls back to the default `guacd` hostname instead of `pit-box-guacd`,
+  causing all desktop connections to fail with `UnknownHostException: guacd`.
+- The `pit-box-guacamole` Podman network uses aardvark-dns for container name
+  resolution. If `pit-box-guacamole` is restarted independently of `pit-box-guacd`
+  (e.g. by the install script), aardvark-dns can lose the `pit-box-guacd` DNS
+  record without the guacd container exiting — the guacd process stays alive but
+  becomes unresolvable. Symptom: `UnknownHostException: pit-box-guacd` (note:
+  the resolved hostname, not the default `guacd`). Fix: `sudo systemctl restart
+  pit-box-guacd.service pit-box-guacamole.service` to re-register both containers
+  with aardvark-dns. The netavark WARN `UNKNOWN_SOURCE: '10.89.2.0/24' is not in
+  any zone` during teardown is benign — it reflects the hardened firewalld zone
+  layout and does not indicate a real fault.
+- Guacamole's `InMemoryAuthenticationFailureTracker` logs the direct TCP
+  connection IP, not the `X-Forwarded-For` header. All browser traffic reaches the
+  Guacamole container through Caddy → Podman NAT, so failed-auth entries always
+  show `10.89.2.1` (the `pit-box-guacamole` Podman bridge gateway) regardless of
+  the real client. Correlate against the success-auth event format
+  `authenticated from [<real-client-ip>, 10.89.2.1]` to identify the true source.
+  A single failure entry at 1/5 from `10.89.2.1` with no corresponding success
+  means a mistyped password from whatever VPN/LAN client last logged in — not an
+  external LAN probe.

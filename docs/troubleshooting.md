@@ -139,9 +139,19 @@ Check:
 
 Check:
 
-1. `/etc/pit-box/ttyd_session.sh` includes both `display-message` and `select-window`
+1. `/etc/pit-box/ttyd_session.sh` includes `display-message`, `select-window`, and `trap cleanup EXIT HUP INT TERM`
 2. `sudo ./scripts/rebuild_webservices.sh ttyd` redeploys the updated ttyd session wrapper
 3. disconnect and reconnect after the ttyd restart so the next browser session inherits the last tmux window
+4. `tmux list-sessions` should not keep accumulating stale `pb-*` grouped sessions after browser disconnects
+
+## Terminal keeps disconnecting and reconnecting
+
+Check:
+
+1. `journalctl -u ttyd.service -n 120` shows `WS closed` events without `ttyd.service` restarts; if the daemon stays up, the churn is browser-side websocket reconnecting rather than a crashing backend
+2. `/etc/caddy/Caddyfile.d/pit-box-webterm.caddy` includes `Alt-Svc "clear"` so browsers do not keep retrying WebTerm over HTTP/3
+3. `sudo ./scripts/rebuild_webservices.sh ttyd caddy` redeploys both the ttyd page and the WebTerm Caddy route together
+4. hard-refresh the browser after the rebuild so any cached Alt-Svc state and stale terminal page assets are dropped
 
 ## RDP does not connect over VPN
 
