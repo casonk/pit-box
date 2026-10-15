@@ -10,8 +10,7 @@
   "Secret": "/mnt/4tb-m2/git/",
   "File": "config/scripts/pit-box-rebuild-guacamole",
   "SymlinkFile": "",
-  "Commit": "bd393d16db6a78cf56f920145c78b1a64529cf32",
-  "Link": "https://github.com/casonk/pit-box/blob/bd393d16db6a78cf56f920145c78b1a64529cf32/config/scripts/pit-box-rebuild-guacamole#L6",
+  "Commit": "166a2e36a63ac3267cd2348771897ee7dfe4d766",
   "Entropy": 3.0778196,
   "Author": "Cason Konzer",
   "Email": "72440835+casonk@users.noreply.github.com",
@@ -21,7 +20,7 @@
    "local-path",
    "machine-specific"
   ],
-  "Fingerprint": "bd393d16db6a78cf56f920145c78b1a64529cf32:config/scripts/pit-box-rebuild-guacamole:portfolio-git-workspace-path:6"
+  "Fingerprint": "166a2e36a63ac3267cd2348771897ee7dfe4d766:config/scripts/pit-box-rebuild-guacamole:portfolio-git-workspace-path:6"
  },
  {
   "RuleID": "keepass-real-profile-name",
@@ -34,8 +33,7 @@
   "Secret": "infra",
   "File": "config/auto-pass.example.ini",
   "SymlinkFile": "",
-  "Commit": "52fe7511793c74d7ec53eae2fd5f7f8e7ad0ae99",
-  "Link": "https://github.com/casonk/pit-box/blob/52fe7511793c74d7ec53eae2fd5f7f8e7ad0ae99/config/auto-pass.example.ini#L5",
+  "Commit": "c54cbfc39f15086400a7e676c4bdd01fd96b8621",
   "Entropy": 2.321928,
   "Author": "Cason Konzer",
   "Email": "72440835+casonk@users.noreply.github.com",
@@ -45,6 +43,6 @@
    "keepass",
    "sensitive-config"
   ],
-  "Fingerprint": "52fe7511793c74d7ec53eae2fd5f7f8e7ad0ae99:config/auto-pass.example.ini:keepass-real-profile-name:5"
+  "Fingerprint": "c54cbfc39f15086400a7e676c4bdd01fd96b8621:config/auto-pass.example.ini:keepass-real-profile-name:5"
  }
 ]
