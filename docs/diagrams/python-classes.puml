@@ -1,4 +1,4 @@
-@startuml classes_pit-box
+@startuml classes_checkout
 set namespaceSeparator none
 class "<color:red>ExportError</color>" as export_remote_desktop_password_to_keepass.ExportError {
 }
