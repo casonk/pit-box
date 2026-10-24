@@ -149,6 +149,14 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   overrides for emergencies, but render/install flows should resolve
   `pit-box-webterm` and `pit-box-cockpit` from the shared registry first so the
   host inventory, DNS, and certificates stay aligned.
+- A WebTerm helper for modifier keys must change the next printable terminal
+  input frame, not send a standalone Shift byte; terminals do not have one.
+  Keep the generated ttyd injection and fallback HTML in sync, show the armed
+  state, transform ttyd's binary input frames as well as toolbar text frames,
+  and leave control sequences and multi-character paste frames untouched.
+- When rebuilding a repo-owned Caddy route, recognize both absolute and
+  relative `Caddyfile.d` imports. Treat a missing expected drop-in as drift so
+  the smart rebuild reinstalls it instead of reporting everything up to date.
 - When a browser surface moves from a repo-owned Caddy drop-in to
   `wiring-harness-caddy`, remove the old `/etc/caddy/Caddyfile.d/*.caddy`
   snippet before validating or reloading Caddy. Duplicate site blocks can block
