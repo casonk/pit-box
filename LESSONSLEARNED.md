@@ -63,6 +63,10 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   clipboard access outside that event. Keep denied-read paste fallback visibly
   distinct from the select/copy panel so users know to use native paste and
   then send.
+- Send tmux prefix shortcuts as one WebTerm input frame. A delay between
+  the prefix and command lets other terminal input intervene; the command
+  can then land as a literal letter in the foreground app. Verify next/prev
+  with the terminal focused as well as with a fresh browser connection.
 - Mobile WebTerm toolbar buttons should handle touch/pointer activation in
   addition to normal `click`; terminal canvases and mobile browser chrome can
   make click-only handlers feel intermittent even when the desktop path works.
@@ -149,11 +153,12 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   overrides for emergencies, but render/install flows should resolve
   `pit-box-webterm` and `pit-box-cockpit` from the shared registry first so the
   host inventory, DNS, and certificates stay aligned.
-- A WebTerm helper for modifier keys must change the next printable terminal
-  input frame, not send a standalone Shift byte; terminals do not have one.
-  Keep the generated ttyd injection and fallback HTML in sync, show the armed
-  state, transform ttyd's binary input frames as well as toolbar text frames,
-  and leave control sequences and multi-character paste frames untouched.
+- A WebTerm helper for modifier keys must transform printable terminal input
+  frames, not send a standalone Shift byte; terminals do not have one. A Shift
+  toggle stays active across printable keys until tapped off. Keep the generated
+  ttyd injection and fallback HTML in sync, show the on/off state, transform
+  ttyd's binary input frames as well as toolbar text frames, and leave control
+  sequences and multi-character paste frames untouched.
 - When rebuilding a repo-owned Caddy route, recognize both absolute and
   relative `Caddyfile.d` imports. Treat a missing expected drop-in as drift so
   the smart rebuild reinstalls it instead of reporting everything up to date.

@@ -257,7 +257,7 @@ INJECTED_HTML = """\
     <button class="pb-btn" data-paste>paste</button>
   </div>
   <div class="pb-row">
-    <button class="pb-btn" data-shift aria-pressed="false" title="Shift next key">Shift</button>
+    <button class="pb-btn" data-shift aria-pressed="false" title="Toggle Shift">Shift off</button>
     <button class="pb-btn" data-send="&#x09;">Tab</button>
     <button class="pb-btn" data-send="&#x1b;">Esc</button>
     <button class="pb-btn" data-send="&#x03;">^C</button>
@@ -302,7 +302,7 @@ WS_INTERCEPTOR = """\
   var termRef = null;
   var killConfirmTimer = null;
   var lastPointerControlAt = 0;
-  var shiftArmed = false;
+  var shiftEnabled = false;
   var touchScroll = null;
   var activeScrollPointerId = null;
   var keyboardInsetTimer = null;
@@ -786,8 +786,9 @@ WS_INTERCEPTOR = """\
   function updateShiftControl() {
     var button = document.querySelector('[data-shift]');
     if (!button) { return; }
-    button.classList.toggle('pb-active', shiftArmed);
-    button.setAttribute('aria-pressed', shiftArmed ? 'true' : 'false');
+    button.classList.toggle('pb-active', shiftEnabled);
+    button.setAttribute('aria-pressed', shiftEnabled ? 'true' : 'false');
+    button.textContent = shiftEnabled ? 'Shift on' : 'Shift off';
   }
 
   function shiftedChar(char) {
@@ -810,7 +811,7 @@ WS_INTERCEPTOR = """\
   }
 
   function maybeShiftInput(frame) {
-    if (!shiftArmed) { return frame; }
+    if (!shiftEnabled) { return frame; }
     var binary = frame instanceof Uint8Array;
     var char;
     if (binary) {
@@ -823,8 +824,6 @@ WS_INTERCEPTOR = """\
       return frame;
     }
     if (char < ' ' || char > '~') { return frame; }
-    shiftArmed = false;
-    updateShiftControl();
     var shifted = shiftedChar(char);
     return binary ? new Uint8Array([48, shifted.charCodeAt(0)]) : '0' + shifted;
   }
@@ -839,8 +838,7 @@ WS_INTERCEPTOR = """\
   }
 
   function sendTmux(command) {
-    send('\\x02');
-    setTimeout(function () { send(command); }, 80);
+    send('\\x02' + command);
   }
 
   function focusTerminal() {
@@ -1170,7 +1168,7 @@ WS_INTERCEPTOR = """\
     resetKillConfirm();
 
     if (button.getAttribute('data-shift') !== null) {
-      shiftArmed = !shiftArmed;
+      shiftEnabled = !shiftEnabled;
       updateShiftControl();
       return;
     }
