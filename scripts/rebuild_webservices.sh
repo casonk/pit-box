@@ -238,6 +238,8 @@ rebuild_smart() {
             "${INSTALL_BASE}/ttyd_session.sh" >/dev/null 2>&1   || need_ttyd=1
     diff -q "$ROOT_DIR/build/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service" \
             "/etc/systemd/system/ttyd${WEBTERM_ENV_SUFFIX}.service" >/dev/null 2>&1 || need_ttyd=1
+    python3 "$ROOT_DIR/scripts/inject_toolbar.py" --check \
+            "${INSTALL_BASE}/webterm/index.html" || need_ttyd=1
 
     if [[ $need_ttyd -eq 0 ]]; then
       diff -q "$ROOT_DIR/scripts/pit_box_api.py" \

@@ -307,6 +307,11 @@ if [[ -f "$ROOT_DIR/scripts/render_configs.sh" ]]; then
 fi
 
 if [[ -f "$ROOT_DIR/scripts/inject_toolbar.py" ]]; then
+  if ! python3 "$ROOT_DIR/scripts/inject_toolbar.py" --check "$ROOT_DIR/configs/webterm/index.html" ||
+     python3 "$ROOT_DIR/scripts/inject_toolbar.py" --check /dev/null; then
+    echo "[invalid] WebTerm source check does not distinguish current and stale pages" >&2
+    errors=$((errors + 1))
+  fi
   if ! grep -q 'MutationObserver' "$ROOT_DIR/scripts/inject_toolbar.py"; then
     echo "[invalid] scripts/inject_toolbar.py does not wait for ttyd to create the terminal container" >&2
     errors=$((errors + 1))

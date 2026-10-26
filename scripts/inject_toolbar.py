@@ -10,6 +10,7 @@ The generated page keeps ttyd's own HTML/CSS/JS but adds:
   - URL-driven tmux actions on connect (?window=N / ?action=new)
 """
 import argparse
+from pathlib import Path
 import re
 import time
 import urllib.request
@@ -1398,7 +1399,19 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--target", default=DEFAULT_TARGET)
+    parser.add_argument("--check", metavar="INDEX", help="check an installed WebTerm page against current toolbar source")
     args = parser.parse_args()
+
+    if args.check:
+        try:
+            installed = Path(args.check).read_text(encoding="utf-8")
+            fallback = (Path(__file__).resolve().parents[1] / "configs/webterm/index.html").read_text(encoding="utf-8")
+        except OSError:
+            raise SystemExit(1)
+        injected = INJECTED_CSS + INJECTED_HTML + WS_INTERCEPTOR
+        if installed == fallback or (injected in installed and VIEWPORT_META in installed):
+            return
+        raise SystemExit(1)
 
     url = f"http://127.0.0.1:{args.port}/"
     print(f"Fetching ttyd HTML from {url} ...")

@@ -127,6 +127,10 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   select panel. Keep the textarea font at or above 16px and install an explicit
   touch-scroll handler on the clip textarea so iOS can scroll the panel even
   when its native fixed-textarea behavior is unreliable.
+- WebTerm Home smart deploy must compare the installed terminal page with both
+  current dynamic toolbar injection and the fallback HTML. Comparing only the
+  home page, tmux wrapper, and service unit misses toolbar-only changes. The
+  advanced rebuild ttyd control remains the explicit force-rebuild path.
 - When the web terminal uses both static pages and a loopback API, install and rebuild flows must deploy them together. Rebuilding only ttyd leaves the home page and live-terminal state UI stale even if the terminal itself updates.
 - When a rebuild script is likely to be run from inside WebTerm, restart
   `ttyd` last. Restarting `ttyd` kills the browser terminal that is running the

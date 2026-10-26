@@ -237,7 +237,8 @@ hostname registered as `pit-box-webterm` in `../wiring-harness/services.local.to
 over the tunnel. The install step also deploys the home page and
 regenerates the terminal page so mobile browsers get tmux controls, arrows, `Tab`, `Esc`,
 `Ctrl+C`, a `Shift on/off` toggle for printable keys, font scaling, xterm
-scrollback helpers, and clipboard controls.
+scrollback helpers, and clipboard controls. On WebTerm Home, **deploy** detects
+changes to the terminal page; **advanced → rebuild ttyd** forces a rebuild.
 
 Point a browser (over VPN) at the hostname registered as `pit-box-webterm` in the sibling
 `wiring-harness` site registry — for example `https://webterm.home/` — and log in with your
