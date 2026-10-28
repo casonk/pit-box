@@ -129,7 +129,9 @@ with `port=tcp://REMOTE_DESKTOP_BIND_ADDRESS:REMOTE_DESKTOP_PORT`, enables the
 at `/etc/xrdp/startwm-pit-box.sh`, auto-detects an installed X11 desktop session
 from `/usr/share/xsessions` unless `REMOTE_DESKTOP_SESSION` is set, adds a
 systemd drop-in ordering xrdp after `wg-quick@WG_INTERFACE.service`, and
-restarts xrdp.
+restarts xrdp. On SELinux hosts it also labels the wrapper `bin_t` (persistent
+`semanage fcontext` rule plus `restorecon`); the default `etc_t` label makes
+xrdp-sesexec fail with `Permission denied` when it execs the wrapper.
 
 The Safari gateway installer renders Podman Quadlet unit files for `guacd` and
 `guacamole`, installs them to `/etc/containers/systemd/`, enables them as
@@ -164,6 +166,14 @@ python3 scripts/export_remote_desktop_password_to_keepass.py --generate --allow-
 5. Open the `Pit Box Desktop` connection.
 6. Log in to the xrdp desktop session with a local desktop account.
 
+### Pasting From Mac Safari
+
+Safari never syncs the Mac clipboard to Guacamole automatically, and Cmd+V
+reaches the remote desktop as Super+V. Copy on the Mac, press Cmd+V in the
+Guacamole session once to sync the clipboard, then press Ctrl+V in the remote
+application. Alternatively open the Guacamole menu (Ctrl+Alt+Shift), paste into
+its clipboard box, then press Ctrl+V in the remote application.
+
 ### Mobile Safari Keyboard
 
 Guacamole renders the desktop as a browser canvas, not as a normal iOS text
@@ -187,3 +197,19 @@ If Safari cannot resolve the hostname, check wiring-harness DNS plus the
 `DNS = WG_SERVER_TUNNEL_IP` line in the phone WireGuard profile. If Safari
 shows a certificate or client-certificate error, refresh the wiring-harness
 mTLS mobileconfig for the iPhone and reinstall it.
+
+## Connect From macOS With Screen Sharing
+
+Pit-box can render a double-clickable launcher for a VNC server that is already
+running and reachable over WireGuard. Pit-box does not install or manage that
+server (for example the `Xvnc` on `WG_SERVER_TUNNEL_IP:5905`).
+
+```bash
+# settings.env: MAC_VNC_ENABLED=true (MAC_VNC_HOST/PORT/NAME optional)
+./scripts/render_mac_vnc_launcher.sh   # or ./scripts/package_client.sh
+```
+
+This writes `dist/mac/Pit Box VNC.vncloc`, which is also added to
+`dist/pit-box-client.zip`. On the Mac, connect WireGuard and open the file;
+macOS Screen Sharing prompts for the VNC password, which can be saved to the
+Keychain. The password is never written to the launcher.

@@ -180,6 +180,19 @@ ensure_xorg_session "$XRDP_INI"
 REMOTE_DESKTOP_SESSION="$(detect_desktop_session)"
 export REMOTE_DESKTOP_SESSION
 install -m 0755 "$XRDP_STARTWM_SOURCE" "$XRDP_STARTWM_TARGET"
+# On SELinux hosts xrdp-sesexec must be allowed to use the wrapper as a process
+# entrypoint. A file copied into /etc inherits etc_t, which is denied
+# ({ entrypoint }), so xrdp falls back to xterm and drops the session right after
+# login. Label it bin_t like the stock /usr/libexec/xrdp/startwm.sh.
+if command -v getenforce >/dev/null 2>&1 && [[ "$(getenforce)" != "Disabled" ]]; then
+  command -v semanage >/dev/null 2>&1 || {
+    echo "SELinux is enabled but semanage is missing; install policycoreutils-python-utils." >&2
+    exit 1
+  }
+  semanage fcontext -a -t bin_t "${XRDP_STARTWM_TARGET//./\\.}" 2>/dev/null \
+    || semanage fcontext -m -t bin_t "${XRDP_STARTWM_TARGET//./\\.}"
+  restorecon -v "$XRDP_STARTWM_TARGET"
+fi
 cat > "$XRDP_STARTWM_ENV" <<EOF
 PIT_BOX_XRDP_DESKTOP_SESSION=${REMOTE_DESKTOP_SESSION}
 EOF

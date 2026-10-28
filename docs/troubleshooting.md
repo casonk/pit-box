@@ -164,6 +164,30 @@ Check:
 5. the phone connects to `10.8.0.1:3389` or the `pit-box-rdp` private hostname, not the public WAN address.
 6. the desktop account can log in locally and is not already blocked by the desktop session manager.
 
+## xrdp login succeeds, then "You have been disconnected"
+
+If the Guacamole and xrdp logins are accepted but the session ends at once,
+check `journalctl -u xrdp-sesman` for:
+
+```text
+Error calling exec (executable: /etc/xrdp/startwm-pit-box.sh) ... Permission denied
+```
+
+and `sudo ausearch -m avc -ts today | grep startwm` for an `{ entrypoint }`
+denial on `etc_t`. Fix the label (rerunning `sudo ./scripts/install_remote_desktop.sh`
+does this too):
+
+```bash
+sudo semanage fcontext -a -t bin_t '/etc/xrdp/startwm-pit-box\.sh'
+sudo restorecon -v /etc/xrdp/startwm-pit-box.sh
+```
+
+## Guacamole login rejects the correct password
+
+The Guacamole hash is rendered from the auto-pass credential. After rotating
+it, rerun `./scripts/render_remote_desktop_gateway.sh` and
+`sudo ./scripts/install_remote_desktop_gateway.sh`.
+
 ## Safari remote desktop does not load
 
 Check:
