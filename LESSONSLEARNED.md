@@ -238,3 +238,11 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   A single failure entry at 1/5 from `10.89.2.1` with no corresponding success
   means a mistyped password from whatever VPN/LAN client last logged in — not an
   external LAN probe.
+- Files installed into `/etc` inherit `etc_t`, and SELinux denies `{ entrypoint }`
+  on that type, so xrdp cannot exec a custom session wrapper there. Label the
+  wrapper `bin_t` with `semanage fcontext` plus `restorecon` in the installer. The
+  symptom is a login that succeeds followed by "disconnected", with `errno: 13`
+  in the xrdp-sesman journal; read that log before suspecting credentials.
+- Rendered Guacamole config carries a hash of the auto-pass password. After
+  rotating that credential, re-render and reinstall the gateway or the web login
+  fails with correct credentials.

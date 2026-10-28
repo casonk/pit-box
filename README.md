@@ -215,7 +215,7 @@ This adds a drop-in snippet to restrict SSH to key-based auth and disables root 
 ./scripts/package_client.sh
 ```
 
-This creates `dist/pit-box-client.zip` containing the client config and a QR-friendly text copy.
+This creates `dist/pit-box-client.zip` containing the client config and a QR-friendly text copy. When `MAC_VNC_ENABLED=true` it also includes a macOS Screen Sharing launcher (`dist/mac/*.vncloc`); see `docs/remote-desktop.md`.
 
 ### 10. (Optional) Install the web terminal
 

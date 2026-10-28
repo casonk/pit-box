@@ -16,9 +16,13 @@ else
   printf '%s\n' "qrencode not installed; QR text not generated." > "$DIST_DIR/iphone-qr.txt"
 fi
 
+"$ROOT_DIR/scripts/render_mac_vnc_launcher.sh" >/dev/null
+
 (
   cd "$DIST_DIR"
-  zip -r "pit-box-client.zip" "iphone.conf" "iphone-qr.txt" >/dev/null
+  files=("iphone.conf" "iphone-qr.txt")
+  [[ -d mac ]] && files+=("mac")
+  zip -r "pit-box-client.zip" "${files[@]}" >/dev/null
 )
 
 echo "Packaged client bundle at dist/pit-box-client.zip"

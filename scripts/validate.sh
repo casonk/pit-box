@@ -39,6 +39,7 @@ check_file "$ROOT_DIR/scripts/configure_ufw.sh"
 check_file "$ROOT_DIR/scripts/configure_firewalld.sh"
 check_file "$ROOT_DIR/scripts/harden_ssh.sh"
 check_file "$ROOT_DIR/scripts/package_client.sh"
+check_file "$ROOT_DIR/scripts/render_mac_vnc_launcher.sh"
 check_file "$ROOT_DIR/scripts/inject_toolbar.py"
 check_file "$ROOT_DIR/scripts/render_webterm_index.sh"
 check_file "$ROOT_DIR/scripts/render_webterm_hosts.py"
@@ -61,6 +62,10 @@ check_file "$ROOT_DIR/configs/remote-desktop/caddy-guacamole.caddy.example"
 check_file "$ROOT_DIR/config/auto-pass.example.ini"
 check_file "$ROOT_DIR/docs/remote-desktop.md"
 
+if ! grep -q '^MAC_VNC_ENABLED=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing MAC_VNC_ENABLED" >&2
+  errors=$((errors + 1))
+fi
 if ! grep -q '^REMOTE_DESKTOP_ENABLED=' "$ROOT_DIR/settings.env.example"; then
   echo "[invalid] settings.env.example missing REMOTE_DESKTOP_ENABLED" >&2
   errors=$((errors + 1))
@@ -105,6 +110,10 @@ if [[ -f "$ROOT_DIR/scripts/install_remote_desktop.sh" ]]; then
   fi
   if ! grep -q 'startwm-pit-box.sh' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
     echo "[invalid] scripts/install_remote_desktop.sh does not install the pit-box xrdp session wrapper" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'semanage fcontext -a -t bin_t' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
+    echo "[invalid] scripts/install_remote_desktop.sh does not label the xrdp session wrapper bin_t for SELinux" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q 'ensure_xorg_session' "$ROOT_DIR/scripts/install_remote_desktop.sh"; then
