@@ -60,6 +60,13 @@ ensure_package() {
   fi
 }
 
+ensure_caddy_dropin_import() {
+  local caddyfile="$1"
+  if ! grep -Eq '^[[:space:]]*import[[:space:]]+(/etc/caddy/)?Caddyfile[.]d/[*][.]caddy([[:space:]]|$)' "$caddyfile"; then
+    printf '\nimport /etc/caddy/Caddyfile.d/*.caddy\n' >> "$caddyfile"
+  fi
+}
+
 check_api_post_handler() {
   local remaining=20
   local status
@@ -125,8 +132,7 @@ rebuild_caddy() {
   mkdir -p /etc/caddy/Caddyfile.d
   cp "$src" "/etc/caddy/Caddyfile.d/pit-box-webterm${WEBTERM_ENV_SUFFIX}.caddy"
   cleanup_wiring_harness_owned_caddy_dropins
-  grep -q 'import Caddyfile.d' "$caddyfile" || \
-    printf '\nimport Caddyfile.d/*.caddy\n' >> "$caddyfile"
+  ensure_caddy_dropin_import "$caddyfile"
   caddy validate --config "$caddyfile"
   systemctl reload caddy
   echo "[ok] caddy${WEBTERM_ENV_SUFFIX} rebuilt"
@@ -161,8 +167,7 @@ rebuild_cockpit() {
   if [[ -f "$caddy_src" ]]; then
     mkdir -p /etc/caddy/Caddyfile.d
     cp "$caddy_src" "/etc/caddy/Caddyfile.d/pit-box-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
-    grep -q 'import Caddyfile.d' "$caddyfile" || \
-      printf '\nimport Caddyfile.d/*.caddy\n' >> "$caddyfile"
+    ensure_caddy_dropin_import "$caddyfile"
     caddy validate --config "$caddyfile"
     systemctl reload caddy
   fi
@@ -233,6 +238,8 @@ rebuild_smart() {
             "${INSTALL_BASE}/ttyd_session.sh" >/dev/null 2>&1   || need_ttyd=1
     diff -q "$ROOT_DIR/build/webterm/ttyd${WEBTERM_ENV_SUFFIX}.service" \
             "/etc/systemd/system/ttyd${WEBTERM_ENV_SUFFIX}.service" >/dev/null 2>&1 || need_ttyd=1
+    python3 "$ROOT_DIR/scripts/inject_toolbar.py" --check \
+            "${INSTALL_BASE}/webterm/index.html" || need_ttyd=1
 
     if [[ $need_ttyd -eq 0 ]]; then
       diff -q "$ROOT_DIR/scripts/pit_box_api.py" \
@@ -242,10 +249,10 @@ rebuild_smart() {
     fi
 
     local caddy_dst="/etc/caddy/Caddyfile.d/pit-box-webterm${WEBTERM_ENV_SUFFIX}.caddy"
-    [[ -f "$caddy_dst" ]] && {
-      diff -q "$ROOT_DIR/build/webterm/caddy-webterm${WEBTERM_ENV_SUFFIX}.caddy" \
-              "$caddy_dst" >/dev/null 2>&1 || need_caddy=1
-    }
+    if [[ ! -f "$caddy_dst" ]] ||
+       ! diff -q "$ROOT_DIR/build/webterm/caddy-webterm${WEBTERM_ENV_SUFFIX}.caddy" "$caddy_dst" >/dev/null 2>&1; then
+      need_caddy=1
+    fi
 
     local dns_dst="/etc/dnsmasq.d/pit-box${WEBTERM_ENV_SUFFIX}-vpn.conf"
     [[ -f "$dns_dst" ]] && {
@@ -257,9 +264,10 @@ rebuild_smart() {
   if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
     local cockpit_src="$ROOT_DIR/build/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
     local cockpit_dst="/etc/caddy/Caddyfile.d/pit-box-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
-    [[ -f "$cockpit_src" && -f "$cockpit_dst" ]] && {
-      diff -q "$cockpit_src" "$cockpit_dst" >/dev/null 2>&1 || need_cockpit=1
-    }
+    if [[ -f "$cockpit_src" ]] &&
+       { [[ ! -f "$cockpit_dst" ]] || ! diff -q "$cockpit_src" "$cockpit_dst" >/dev/null 2>&1; }; then
+      need_cockpit=1
+    fi
   fi
 
   if [[ "${REMOTE_DESKTOP_WEB_ENABLED:-false}" == "true" ]]; then

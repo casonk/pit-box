@@ -10,6 +10,7 @@ The generated page keeps ttyd's own HTML/CSS/JS but adds:
   - URL-driven tmux actions on connect (?window=N / ?action=new)
 """
 import argparse
+from pathlib import Path
 import re
 import time
 import urllib.request
@@ -257,6 +258,7 @@ INJECTED_HTML = """\
     <button class="pb-btn" data-paste>paste</button>
   </div>
   <div class="pb-row">
+    <button class="pb-btn" data-shift aria-pressed="false" title="Toggle Shift">Shift off</button>
     <button class="pb-btn" data-send="&#x09;">Tab</button>
     <button class="pb-btn" data-send="&#x1b;">Esc</button>
     <button class="pb-btn" data-send="&#x03;">^C</button>
@@ -301,6 +303,7 @@ WS_INTERCEPTOR = """\
   var termRef = null;
   var killConfirmTimer = null;
   var lastPointerControlAt = 0;
+  var shiftEnabled = false;
   var touchScroll = null;
   var activeScrollPointerId = null;
   var keyboardInsetTimer = null;
@@ -781,6 +784,51 @@ WS_INTERCEPTOR = """\
     }).catch(function () {});
   }
 
+  function updateShiftControl() {
+    var button = document.querySelector('[data-shift]');
+    if (!button) { return; }
+    button.classList.toggle('pb-active', shiftEnabled);
+    button.setAttribute('aria-pressed', shiftEnabled ? 'true' : 'false');
+    button.textContent = shiftEnabled ? 'Shift on' : 'Shift off';
+  }
+
+  function shiftedChar(char) {
+    if (char >= 'a' && char <= 'z') { return char.toUpperCase(); }
+    if (char >= '0' && char <= '9') { return ')!@#$%^&*('[Number(char)]; }
+    switch (char) {
+      case String.fromCharCode(96): return '~';
+      case '-': return '_';
+      case '=': return '+';
+      case '[': return '{';
+      case ']': return '}';
+      case ';': return ':';
+      case ',': return '<';
+      case '.': return '>';
+      case '/': return '?';
+      case String.fromCharCode(92): return '|';
+      case String.fromCharCode(39): return '"';
+      default: return char;
+    }
+  }
+
+  function maybeShiftInput(frame) {
+    if (!shiftEnabled) { return frame; }
+    var binary = frame instanceof Uint8Array;
+    var char;
+    if (binary) {
+      if (frame.length !== 2 || frame[0] !== 48) { return frame; }
+      char = String.fromCharCode(frame[1]);
+    } else if (typeof frame === 'string' &&
+               frame.length === 2 && frame.charAt(0) === '0') {
+      char = frame.charAt(1);
+    } else {
+      return frame;
+    }
+    if (char < ' ' || char > '~') { return frame; }
+    var shifted = shiftedChar(char);
+    return binary ? new Uint8Array([48, shifted.charCodeAt(0)]) : '0' + shifted;
+  }
+
   function send(data) {
     if (!sock) { return; }
     if (sock.readyState === _WS.OPEN) {
@@ -791,8 +839,7 @@ WS_INTERCEPTOR = """\
   }
 
   function sendTmux(command) {
-    send('\\x02');
-    setTimeout(function () { send(command); }, 80);
+    send('\\x02' + command);
   }
 
   function focusTerminal() {
@@ -1121,6 +1168,12 @@ WS_INTERCEPTOR = """\
     }
     resetKillConfirm();
 
+    if (button.getAttribute('data-shift') !== null) {
+      shiftEnabled = !shiftEnabled;
+      updateShiftControl();
+      return;
+    }
+
     var selMode = button.getAttribute('data-sel-mode');
     if (selMode !== null) {
       toggleSelMode();
@@ -1203,6 +1256,8 @@ WS_INTERCEPTOR = """\
     var ws = proto !== undefined ? new _WS(normalized, proto) : new _WS(normalized);
     if (normalized.indexOf('/ws') !== -1) {
       sock = ws;
+      var nativeSend = ws.send.bind(ws);
+      ws.send = function (frame) { return nativeSend(maybeShiftInput(frame)); };
       ws.addEventListener('open', function () {
         setTimeout(execAction, 900);
       }, { once: true });
@@ -1217,7 +1272,7 @@ WS_INTERCEPTOR = """\
   PatchedWS.CLOSED = _WS.CLOSED;
   window.WebSocket = PatchedWS;
 
-  var CONTROL_SELECTOR = '[data-send],[data-tmux],[data-font],[data-page],[data-kill],[data-sel-mode],[data-copy-sel],[data-paste],[data-clip-copy],[data-clip-send],[data-clip-close]';
+  var CONTROL_SELECTOR = '[data-shift],[data-send],[data-tmux],[data-font],[data-page],[data-kill],[data-sel-mode],[data-copy-sel],[data-paste],[data-clip-copy],[data-clip-send],[data-clip-close]';
 
   function activateControl(event) {
     var button = event.target.closest(CONTROL_SELECTOR);
@@ -1344,7 +1399,19 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--target", default=DEFAULT_TARGET)
+    parser.add_argument("--check", metavar="INDEX", help="check an installed WebTerm page against current toolbar source")
     args = parser.parse_args()
+
+    if args.check:
+        try:
+            installed = Path(args.check).read_text(encoding="utf-8")
+            fallback = (Path(__file__).resolve().parents[1] / "configs/webterm/index.html").read_text(encoding="utf-8")
+        except OSError:
+            raise SystemExit(1)
+        injected = INJECTED_CSS + INJECTED_HTML + WS_INTERCEPTOR
+        if installed == fallback or (injected in installed and VIEWPORT_META in installed):
+            return
+        raise SystemExit(1)
 
     url = f"http://127.0.0.1:{args.port}/"
     print(f"Fetching ttyd HTML from {url} ...")
