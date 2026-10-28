@@ -1,5 +1,5 @@
 @startuml
-title pit-box Tooling Integrations
+title checkout Tooling Integrations
 left to right direction
 skinparam shadowing false
 skinparam defaultFontName Monospace
@@ -7,7 +7,7 @@ skinparam componentStyle rectangle
 skinparam linetype ortho
 rectangle ".github/workflows/ci.yml\n1 detected tool" as source_github_workflows_ci_yml #E0F2FE
 rectangle ".github/workflows/secret-scan.yml\n1 detected tool" as source_github_workflows_secret_scan_yml #E0F2FE
-rectangle "configs/remote-desktop/startwm-pit-box.sh\n1 detected tool" as source_configs_remote_desktop_startwm_pit_box_sh #E0F2FE
+rectangle "configs/remote-desktop/startwm-pit-box.sh\n2 detected tools" as source_configs_remote_desktop_startwm_pit_box_sh #E0F2FE
 rectangle "scripts/activate_macos_air_webterm.sh\n1 detected tool" as source_scripts_activate_macos_air_webterm_sh #E0F2FE
 rectangle "scripts/configure_firewall.sh\n1 detected tool" as source_scripts_configure_firewall_sh #E0F2FE
 rectangle "scripts/configure_firewalld.sh\n2 detected tools" as source_scripts_configure_firewalld_sh #E0F2FE
@@ -28,12 +28,13 @@ rectangle "scripts/render_configs.sh\n3 detected tools" as source_scripts_render
 rectangle "scripts/render_macos_webterm_launch_agent.sh\n5 detected tools" as source_scripts_render_macos_webterm_launch_agent_sh #E0F2FE
 rectangle "scripts/render_remote_desktop_gateway.sh\n4 detected tools" as source_scripts_render_remote_desktop_gateway_sh #E0F2FE
 rectangle "scripts/render_webterm_index.sh\n2 detected tools" as source_scripts_render_webterm_index_sh #E0F2FE
-rectangle "scripts/run_tachometer_profile.sh\n3 detected tools" as source_scripts_run_tachometer_profile_sh #E0F2FE
+rectangle "scripts/run_tachometer_profile.sh\n1 detected tool" as source_scripts_run_tachometer_profile_sh #E0F2FE
 rectangle "scripts/site_registry.sh\n1 detected tool" as source_scripts_site_registry_sh #E0F2FE
 rectangle "scripts/ttyd_session.sh\n1 detected tool" as source_scripts_ttyd_session_sh #E0F2FE
 rectangle "scripts/validate.sh\n0 detected tools" as source_scripts_validate_sh #E0F2FE
 cloud "!inserted" as tool_inserted #FEF3C7
 cloud "apt-get" as tool_apt_get #FEF3C7
+cloud "awk" as tool_awk #FEF3C7
 cloud "basename" as tool_basename #FEF3C7
 cloud "caddy" as tool_caddy #FEF3C7
 cloud "casonk/.github/.github/workflows/python-ci.yml" as tool_casonk_github_github_workflows_python_ci_yml #FEF3C7
@@ -67,12 +68,10 @@ cloud "rdp" as tool_rdp #FEF3C7
 cloud "remote-desktop-web" as tool_remote_desktop_web #FEF3C7
 cloud "resolve_registry_field" as tool_resolve_registry_field #FEF3C7
 cloud "rm" as tool_rm #FEF3C7
-cloud "run" as tool_run #FEF3C7
 cloud "sed" as tool_sed #FEF3C7
 cloud "session-control-web" as tool_session_control_web #FEF3C7
 cloud "sleep" as tool_sleep #FEF3C7
 cloud "sshd" as tool_sshd #FEF3C7
-cloud "summarize" as tool_summarize #FEF3C7
 cloud "sysctl" as tool_sysctl #FEF3C7
 cloud "systemctl" as tool_systemctl #FEF3C7
 cloud "tachometer" as tool_tachometer #FEF3C7
@@ -84,6 +83,7 @@ cloud "wg" as tool_wg #FEF3C7
 cloud "zip" as tool_zip #FEF3C7
 source_github_workflows_ci_yml --> tool_casonk_github_github_workflows_python_ci_yml
 source_github_workflows_secret_scan_yml --> tool_casonk_github_github_workflows_secret_scan_yml
+source_configs_remote_desktop_startwm_pit_box_sh --> tool_awk
 source_configs_remote_desktop_startwm_pit_box_sh --> tool_sed
 source_scripts_activate_macos_air_webterm_sh --> tool_cat
 source_scripts_configure_firewall_sh --> tool_systemctl
@@ -185,13 +185,11 @@ source_scripts_render_remote_desktop_gateway_sh --> tool_mkdir
 source_scripts_render_remote_desktop_gateway_sh --> tool_populate_site_hostname
 source_scripts_render_webterm_index_sh --> tool_cp
 source_scripts_render_webterm_index_sh --> tool_mkdir
-source_scripts_run_tachometer_profile_sh --> tool_run
-source_scripts_run_tachometer_profile_sh --> tool_summarize
 source_scripts_run_tachometer_profile_sh --> tool_tachometer
 source_scripts_site_registry_sh --> tool_python3
 source_scripts_ttyd_session_sh --> tool_tmux
 note as toolingGraphSummary
 Scanned 27 tooling entrypoints.
-Detected 50 third-party tools.
+Detected 49 third-party tools.
 end note
 @enduml
