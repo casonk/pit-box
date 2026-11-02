@@ -112,6 +112,15 @@ for Cockpit is limited to:
 - A separate dnsmasq DNS record for the dev hostname.
 
 Set `COCKPIT_PORT=9090` in both envs (same port, different hostname only).
+Set `COCKPIT_ORIGINS` to the space-separated HTTPS URLs for every enabled
+Cockpit route, quoted as one shell value. `rebuild_webservices.sh cockpit`
+installs that list plus the required forwarded-protocol settings into
+`/etc/cockpit/cockpit.conf`; this prevents a successful login from being
+followed by a rejected WebSocket handshake. For example:
+
+```bash
+COCKPIT_ORIGINS="https://cockpit.homeserver.vpn https://cockpit-dev.homeserver.vpn"
+```
 
 ## Desktop-web (Guacamole) notes
 

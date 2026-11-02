@@ -294,6 +294,7 @@ REMOTE_DESKTOP_PORT=3389
 REMOTE_DESKTOP_BIND_ADDRESS=10.8.0.1
 REMOTE_DESKTOP_WEB_ENABLED=true
 REMOTE_DESKTOP_WEB_PORT=8090
+REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES=1440
 REMOTE_DESKTOP_WEB_USER=iphone
 REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_ENTRY=your-service/remote-desktop/password
 REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE=your-profile
@@ -311,6 +312,14 @@ sudo ./scripts/install_remote_desktop.sh
 sudo ./scripts/install_remote_desktop_gateway.sh
 sudo ./scripts/configure_firewall.sh
 ```
+
+The gateway installer enables a systemd health timer. Every two minutes it
+checks that both containers are active and that the Guacamole container can
+resolve `pit-box-guacd`; it performs a paired restart only when that path is
+broken. Inspect it with `systemctl status pit-box-guacamole-health.timer`.
+Guacamole login tokens remain valid for 24 hours of inactivity by default;
+adjust `REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES` if a shorter or longer
+window is preferred.
 
 Connect from iPhone Safari only after WireGuard is connected, using the
 `pit-box-remote-desktop` hostname registered in
@@ -434,6 +443,14 @@ The expectation here is:
   `wg-quick@WG_INTERFACE.service`.
 - The Safari gateway binds Guacamole to loopback and exposes it through the
   same Caddy/mTLS pattern used by other private pit-box browser surfaces.
+- `pit-box-guacamole-health.timer` detects the otherwise invisible state where
+  both containers are running but Podman DNS has lost the guacd record. It
+  leaves healthy sessions untouched and restarts the pair only on failure.
+- Mobile Safari may suspend the active browser tunnel when backgrounded.
+  Guacamole then logs `User is not responding`, but xrdp preserves the Linux
+  desktop and reconnects to the same display. The configurable Guacamole token
+  timeout avoids an additional web login; it cannot force background Safari to
+  keep its WebSocket alive.
 - When the `pit-box-remote-desktop` registry entry uses
   `ingress = "wiring-harness-caddy"`, wiring-harness owns the Caddy site and
   pit-box removes any stale repo drop-in for that desktop hostname.

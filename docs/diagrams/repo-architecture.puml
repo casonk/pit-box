@@ -16,12 +16,16 @@ rectangle "Script Pipeline" {
     component "harden_ssh.sh" as HARDEN
     component "package_client.sh" as PACKAGE
     component "validate.sh" as VALIDATE
+    component "rebuild_webservices.sh\nmanaged Cockpit config" as WEB_REBUILD
+    component "install_remote_desktop_gateway.sh\ncheck_guacamole_health.sh" as DESKTOP_GATEWAY
 }
 
 rectangle "Build Outputs (gitignored)" {
     artifact "build/server/wg0.conf" as WG_SERVER
     artifact "build/client/<peer>.conf" as WG_CLIENT
     artifact "build/ssh/sshd_config.snippet" as SSH_SNIPPET
+    artifact "build/cockpit/cockpit.conf" as COCKPIT_CONFIG
+    artifact "Guacamole health\nservice + timer" as GUAC_HEALTH
 }
 
 rectangle "Distribution (gitignored)" {
@@ -36,12 +40,16 @@ rectangle "Running System" {
     component "WireGuard Tunnel\n(UDP, public interface)" as WG_SVC
     component "SSH\n(WireGuard interface only)" as SSH_SVC
     component "Optional LAN Services\n(WireGuard interface only)" as LAN_SVC
+    component "Cockpit\n(Caddy + allowed Origin)" as COCKPIT_SVC
+    component "Guacamole + guacd\n(auto-repaired DNS)" as GUAC_SVC
 }
 
 ENV --> RENDER
 RENDER --> WG_SERVER
 RENDER --> WG_CLIENT
 RENDER --> SSH_SNIPPET
+RENDER --> COCKPIT_CONFIG
+DESKTOP_GATEWAY --> GUAC_HEALTH
 
 KEYGEN --> KEYS
 KEYS ..> RENDER : referenced by
@@ -51,6 +59,9 @@ IPFWD --> WG_SVC : enables forwarding
 FIREWALL --> WG_SVC : opens UDP port
 SSH_SNIPPET --> HARDEN
 HARDEN --> SSH_SVC : hardens sshd
+COCKPIT_CONFIG --> WEB_REBUILD
+WEB_REBUILD --> COCKPIT_SVC : installs and restarts
+GUAC_HEALTH --> GUAC_SVC : checks and repairs
 
 WG_CLIENT --> PACKAGE
 PACKAGE --> DIST
@@ -61,5 +72,7 @@ VALIDATE --> SSH_SNIPPET : checks
 
 WG_SVC --> SSH_SVC : tunneled access
 WG_SVC --> LAN_SVC : optional (lan/full-tunnel mode)
+WG_SVC --> COCKPIT_SVC : mTLS web access
+WG_SVC --> GUAC_SVC : mTLS browser desktop
 
 @enduml

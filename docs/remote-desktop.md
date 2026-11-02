@@ -143,6 +143,20 @@ Guacamole config volume is mounted with a private container label. The config
 directory is owned by the Guacamole container UID/GID, which defaults to
 `1001:1001` for the official image.
 
+The installer also enables `pit-box-guacamole-health.timer`. Its two-minute
+check runs from inside the Guacamole container and verifies that the guacd
+hostname resolves. A healthy gateway is never restarted. If either service is
+down or the internal DNS record is missing, the check restarts guacd and
+Guacamole together, waits for name resolution to recover, and records the
+result in the system journal.
+
+`REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES` controls how long an inactive
+Guacamole authentication token remains valid and defaults to 1440 minutes (24
+hours). This is separate from an active desktop tunnel. Mobile Safari can stop
+responding when backgrounded, at which point guacd closes that browser tunnel;
+xrdp keeps the Linux session alive and the next connection resumes the same
+display after desktop authentication.
+
 If a password already exists in ignored `settings.env`, export it into
 auto-pass once:
 

@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Optional xrdp/RDP remote-desktop setup for phone access over WireGuard.
 - Optional Guacamole browser gateway for iPhone Safari remote-desktop access.
 - auto-pass-backed Guacamole credential resolution and export helper.
+- Managed Cockpit reverse-proxy origin configuration.
+- Guacamole internal-DNS health timer with paired automatic recovery.
+- Configurable Guacamole login-token inactivity timeout, defaulting to 24 hours.
 
 ## [0.1.0] - 2026-01-01
 

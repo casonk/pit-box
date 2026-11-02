@@ -40,7 +40,7 @@
         <mxCell id="e20_31" style="edgeStyle=orthogonalEdgeStyle;jumpStyle=arc;jumpSize=10;" edge="1" source="20" target="31" parent="1">
           <mxGeometry relative="1" as="geometry" archilityManagedRoute="1">
             <Array as="points">
-              <mxPoint x="464" y="105" />
+              <mxPoint x="464" y="110" />
               <mxPoint x="464" y="78" />
               <mxPoint x="476" y="78" />
               <mxPoint x="476" y="95" />
@@ -50,7 +50,7 @@
         <mxCell id="e20_32" style="edgeStyle=orthogonalEdgeStyle;jumpStyle=arc;jumpSize=10;" edge="1" source="20" target="32" parent="1">
           <mxGeometry relative="1" as="geometry" archilityManagedRoute="1">
             <Array as="points">
-              <mxPoint x="464" y="90" />
+              <mxPoint x="464" y="100" />
               <mxPoint x="464" y="150" />
               <mxPoint x="476" y="150" />
             </Array>
@@ -191,6 +191,30 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="e100_102" value="optional" style="edgeStyle=orthogonalEdgeStyle;dashed=1;jumpStyle=arc;jumpSize=10;" edge="1" source="100" target="102" parent="1">
+          <mxGeometry relative="1" as="geometry" archilityManagedRoute="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="110" value="Managed Cockpit config&#10;allowed Origin + proxy headers" style="shape=note;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="940" y="175" width="190" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="111" value="Guacamole health timer&#10;container DNS probe" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="940" y="255" width="190" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="112" value="Guacamole + guacd&#10;paired auto-recovery" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="940" y="335" width="190" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e20_110" style="edgeStyle=orthogonalEdgeStyle;jumpStyle=arc;jumpSize=10;" edge="1" source="20" target="110" parent="1">
+          <mxGeometry relative="1" as="geometry" archilityManagedRoute="1">
+            <Array as="points">
+              <mxPoint x="464" y="90" />
+              <mxPoint x="464" y="262" />
+              <mxPoint x="916" y="262" />
+              <mxPoint x="916" y="202.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e111_112" value="checks / repairs" style="edgeStyle=orthogonalEdgeStyle;jumpStyle=arc;jumpSize=10;" edge="1" source="111" target="112" parent="1">
           <mxGeometry relative="1" as="geometry" archilityManagedRoute="1">
             <Array as="points" />
           </mxGeometry>

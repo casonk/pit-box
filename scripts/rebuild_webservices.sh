@@ -163,7 +163,15 @@ rebuild_dns() {
 
 rebuild_cockpit() {
   local caddy_src="$ROOT_DIR/build/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
+  local cockpit_src="$ROOT_DIR/build/cockpit/cockpit.conf"
+  local cockpit_dst="/etc/cockpit/cockpit.conf"
   local caddyfile="/etc/caddy/Caddyfile"
+  [[ -f "$cockpit_src" ]] || { echo "Missing $cockpit_src — run render_configs.sh first" >&2; return 1; }
+  mkdir -p /etc/cockpit
+  if [[ -f "$cockpit_dst" && ! -f "${cockpit_dst}.pit-box.bak" ]]; then
+    cp -a "$cockpit_dst" "${cockpit_dst}.pit-box.bak"
+  fi
+  install -m 0644 "$cockpit_src" "$cockpit_dst"
   if [[ -f "$caddy_src" ]]; then
     mkdir -p /etc/caddy/Caddyfile.d
     cp "$caddy_src" "/etc/caddy/Caddyfile.d/pit-box-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
@@ -264,8 +272,14 @@ rebuild_smart() {
   if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
     local cockpit_src="$ROOT_DIR/build/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
     local cockpit_dst="/etc/caddy/Caddyfile.d/pit-box-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
+    local cockpit_config_src="$ROOT_DIR/build/cockpit/cockpit.conf"
+    local cockpit_config_dst="/etc/cockpit/cockpit.conf"
     if [[ -f "$cockpit_src" ]] &&
        { [[ ! -f "$cockpit_dst" ]] || ! diff -q "$cockpit_src" "$cockpit_dst" >/dev/null 2>&1; }; then
+      need_cockpit=1
+    fi
+    if [[ -f "$cockpit_config_src" ]] &&
+       { [[ ! -f "$cockpit_config_dst" ]] || ! diff -q "$cockpit_config_src" "$cockpit_config_dst" >/dev/null 2>&1; }; then
       need_cockpit=1
     fi
   fi

@@ -229,6 +229,27 @@ Unlike `CHATHISTORY.md`, this file should keep only reusable lessons that should
   with aardvark-dns. The netavark WARN `UNKNOWN_SOURCE: '10.89.2.0/24' is not in
   any zone` during teardown is benign — it reflects the hardened firewalld zone
   layout and does not indicate a real fault.
+- A reverse-proxied Cockpit login page returning HTTP 200 does not verify the
+  authenticated session path. Cockpit separately validates the browser Origin
+  on its WebSocket handshake, so a missing `/etc/cockpit/cockpit.conf` can let
+  login succeed and then immediately show a connection failure with
+  `received request from bad Origin` in the Cockpit journal. Authorize the
+  external HTTPS hostname under `[WebService] Origins`, set
+  `ProtocolHeader = X-Forwarded-Proto` and
+  `ForwardedForHeader = X-Forwarded-For`, then verify an actual post-login
+  WebSocket session rather than only fetching the HTML shell.
+- `Restart=on-failure` is insufficient for Guacamole's lost-aardvark-DNS mode:
+  both containers remain active while new connections fail. Monitor name
+  resolution from inside the Guacamole container and restart guacd plus
+  Guacamole together only when that check fails; a healthy-session-safe probe
+  must not use unconditional periodic restarts.
+- A guacd `User is not responding` disconnect on mobile Safari is a client
+  heartbeat failure, not Guacamole's authentication-token expiry. Safari may
+  suspend the page while backgrounded, and the server cannot safely extend
+  that fixed liveness exchange. Preserve the xrdp desktop across disconnects,
+  make the Guacamole `api-session-timeout` separately configurable, and verify
+  reconnection reaches the same xrdp display before treating the desktop as
+  logged out.
 - Guacamole's `InMemoryAuthenticationFailureTracker` logs the direct TCP
   connection IP, not the `X-Forwarded-For` header. All browser traffic reaches the
   Guacamole container through Caddy → Podman NAT, so failed-auth entries always

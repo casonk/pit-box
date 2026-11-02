@@ -60,6 +60,8 @@ guest and ordinary LAN subnets. See
 - WireGuard
 - SSH server
 - Optional xrdp remote desktop
+- Optional Guacamole browser gateway with a systemd DNS health timer
+- Optional Cockpit reverse proxy with a managed allowed-origin configuration
 - Linux firewall
 - Optional SMB server
 - Optional internal web UI
