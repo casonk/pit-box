@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `ttyd` and `pit-box-api` units use `Restart=always` so a clean SIGTERM no longer leaves WebTerm down.
+
 ### Added
 
 - Optional xrdp/RDP remote-desktop setup for phone access over WireGuard.

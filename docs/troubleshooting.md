@@ -54,6 +54,24 @@ Check:
 3. rerun `./scripts/render_configs.sh` and `sudo ./scripts/rebuild_webservices.sh caddy` to redeploy the Caddy route.
 4. hard-refresh the browser after Caddy reloads so the old failed terminal page is not cached.
 
+## Web terminal is down after a clean stop (SIGTERM)
+
+Symptom: `systemctl status ttyd pit-box-api` shows `inactive (dead)` with
+`code=exited, status=0/SUCCESS` or `code=killed, signal=TERM`, and the journal
+shows `ttyd ... received signal: SIGTERM`. A user-wide SIGTERM (everything the
+WebTerm user owns, including the user manager) is a clean exit, so the old
+`Restart=on-failure` never restarted the units. Both units now use
+`Restart=always` with `RestartSec=5`.
+
+Check:
+
+1. `systemctl show ttyd pit-box-api -p Restart` reports `Restart=always` for both.
+2. if not, run `./scripts/render_configs.sh` then `sudo ./scripts/rebuild_webservices.sh ttyd`.
+3. tmux sessions run as the same user and die with a user-wide kill; only the
+   services are restarted automatically.
+4. a deliberate stop still works for maintenance: `sudo systemctl stop ttyd`
+   is honoured, only unexpected exits are restarted.
+
 ## Web terminal loads but helper keys are missing
 
 Check:
