@@ -29,6 +29,8 @@ check_file "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"
 check_file "$ROOT_DIR/scripts/resolve_remote_desktop_password.py"
 check_file "$ROOT_DIR/scripts/export_remote_desktop_password_to_keepass.py"
 check_file "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"
+check_file "$ROOT_DIR/scripts/check_guacamole_health.sh"
+check_file "$ROOT_DIR/tests/test_check_guacamole_health.sh"
 check_file "$ROOT_DIR/scripts/rebuild_webservices.sh"
 check_file "$ROOT_DIR/scripts/site_registry.sh"
 check_file "$ROOT_DIR/scripts/generate_keys.sh"
@@ -90,6 +92,10 @@ if ! grep -q '^REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE=' "$ROOT_DIR/settings
   echo "[invalid] settings.env.example missing REMOTE_DESKTOP_WEB_PASSWORD_KEEPASS_PROFILE" >&2
   errors=$((errors + 1))
 fi
+if ! grep -q '^REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES=' "$ROOT_DIR/settings.env.example"; then
+  echo "[invalid] settings.env.example missing REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES" >&2
+  errors=$((errors + 1))
+fi
 if ! grep -q '^REMOTE_DESKTOP_SESSION=' "$ROOT_DIR/settings.env.example"; then
   echo "[invalid] settings.env.example missing REMOTE_DESKTOP_SESSION" >&2
   errors=$((errors + 1))
@@ -146,6 +152,10 @@ if [[ -f "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh" ]]; then
     echo "[invalid] scripts/render_remote_desktop_gateway.sh does not resolve Guacamole credentials via auto-pass helper" >&2
     errors=$((errors + 1))
   fi
+  if ! grep -q 'api-session-timeout: ${REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES}' "$ROOT_DIR/scripts/render_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/render_remote_desktop_gateway.sh does not render the Guacamole login-token timeout" >&2
+    errors=$((errors + 1))
+  fi
 fi
 
 if [[ -f "$ROOT_DIR/scripts/resolve_remote_desktop_password.py" ]]; then
@@ -171,12 +181,27 @@ if [[ -f "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh" ]]; then
     echo "[invalid] scripts/install_remote_desktop_gateway.sh does not print Guacamole logs on readiness failure" >&2
     errors=$((errors + 1))
   fi
-  if ! grep -q 'GUACAMOLE_SERVICE="pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh" || ! grep -q 'systemctl start "$GUACAMOLE_SERVICE"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
-    echo "[invalid] scripts/install_remote_desktop_gateway.sh does not start the Quadlet Guacamole service" >&2
+  if ! grep -q 'systemctl restart "$GUACD_SERVICE" "$GUACAMOLE_SERVICE"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/install_remote_desktop_gateway.sh does not perform a paired Quadlet restart" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'systemctl enable --now "$HEALTH_TIMER"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
+    echo "[invalid] scripts/install_remote_desktop_gateway.sh does not enable the Guacamole health timer" >&2
     errors=$((errors + 1))
   fi
   if ! grep -q 'rm -f "$CADDY_TARGET"' "$ROOT_DIR/scripts/install_remote_desktop_gateway.sh"; then
     echo "[invalid] scripts/install_remote_desktop_gateway.sh does not remove stale repo Caddy drop-ins for wiring-harness-owned desktop sites" >&2
+    errors=$((errors + 1))
+  fi
+fi
+
+if [[ -f "$ROOT_DIR/scripts/check_guacamole_health.sh" ]]; then
+  if ! grep -q 'getent hosts "$GUACD_HOSTNAME"' "$ROOT_DIR/scripts/check_guacamole_health.sh"; then
+    echo "[invalid] scripts/check_guacamole_health.sh does not verify guacd DNS from the Guacamole container" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'restart "$GUACD_SERVICE" "$GUACAMOLE_SERVICE"' "$ROOT_DIR/scripts/check_guacamole_health.sh"; then
+    echo "[invalid] scripts/check_guacamole_health.sh does not repair the service pair" >&2
     errors=$((errors + 1))
   fi
 fi
@@ -200,6 +225,10 @@ if [[ -f "$ROOT_DIR/scripts/rebuild_webservices.sh" ]]; then
   fi
   if grep -q 'rebuild_caddy.*||' "$ROOT_DIR/scripts/rebuild_webservices.sh"; then
     echo "[invalid] scripts/rebuild_webservices.sh can mask rebuild_caddy failures inside a Bash errexit-disabled context" >&2
+    errors=$((errors + 1))
+  fi
+  if ! grep -q 'install -m 0644 "$cockpit_src" "$cockpit_dst"' "$ROOT_DIR/scripts/rebuild_webservices.sh"; then
+    echo "[invalid] scripts/rebuild_webservices.sh does not install the managed Cockpit origin configuration" >&2
     errors=$((errors + 1))
   fi
 fi
@@ -708,6 +737,11 @@ if [[ -f "$ROOT_DIR/build/client/iphone.conf" ]]; then
     echo "[invalid] build/client/iphone.conf missing Endpoint" >&2
     errors=$((errors + 1))
   fi
+fi
+
+if ! "$ROOT_DIR/tests/test_check_guacamole_health.sh"; then
+  echo "[invalid] Guacamole health-check behavioral tests failed" >&2
+  errors=$((errors + 1))
 fi
 
 if [[ "$errors" -gt 0 ]]; then

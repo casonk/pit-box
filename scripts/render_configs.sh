@@ -299,7 +299,14 @@ if [[ "${COCKPIT_ENABLED:-false}" == "true" ]]; then
   : "${COCKPIT_HOSTNAME:?COCKPIT_ENABLED=true but COCKPIT_HOSTNAME is not set}"
   : "${CADDY_CERTS_DIR:?COCKPIT_ENABLED=true but CADDY_CERTS_DIR is not set}"
   COCKPIT_PORT="${COCKPIT_PORT:-9090}"
+  COCKPIT_ORIGINS="${COCKPIT_ORIGINS:-https://${COCKPIT_HOSTNAME}}"
   mkdir -p "$BUILD_DIR/cockpit"
+  cat > "$BUILD_DIR/cockpit/cockpit.conf" <<EOF
+[WebService]
+Origins = ${COCKPIT_ORIGINS}
+ProtocolHeader = X-Forwarded-Proto
+ForwardedForHeader = X-Forwarded-For
+EOF
   cat > "$BUILD_DIR/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy" <<EOF
 https://${COCKPIT_HOSTNAME} {
 	tls ${CADDY_CERTS_DIR}/server.crt ${CADDY_CERTS_DIR}/server.key {
@@ -325,5 +332,6 @@ https://${COCKPIT_HOSTNAME} {
 	}
 }
 EOF
+  echo "Rendered build/cockpit/cockpit.conf"
   echo "Rendered build/cockpit/caddy-cockpit${WEBTERM_ENV_SUFFIX}.caddy"
 fi

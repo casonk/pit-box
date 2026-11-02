@@ -65,6 +65,12 @@ done
 REMOTE_DESKTOP_BIND_ADDRESS="${REMOTE_DESKTOP_BIND_ADDRESS:-$WG_SERVER_TUNNEL_IP}"
 REMOTE_DESKTOP_GUACAMOLE_IMAGE="${REMOTE_DESKTOP_GUACAMOLE_IMAGE:-docker.io/guacamole/guacamole:1.6.0}"
 REMOTE_DESKTOP_GUACD_IMAGE="${REMOTE_DESKTOP_GUACD_IMAGE:-docker.io/guacamole/guacd:1.6.0}"
+REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES="${REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES:-1440}"
+
+if [[ ! "$REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES" =~ ^[1-9][0-9]*$ ]]; then
+  echo "REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES must be a positive integer." >&2
+  exit 1
+fi
 
 credential_exports="$(
   "$ROOT_DIR/scripts/resolve_remote_desktop_password.py" \
@@ -84,6 +90,7 @@ chmod 700 "$BUILD_DIR" "$GUAC_HOME"
 cat > "$GUAC_HOME/guacamole.properties" <<EOF
 guacd-hostname: pit-box-guacd${WEBTERM_ENV_SUFFIX}
 guacd-port: 4822
+api-session-timeout: ${REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES}
 user-mapping: /etc/guacamole/user-mapping.xml
 EOF
 
@@ -176,6 +183,38 @@ TimeoutStartSec=120
 WantedBy=multi-user.target
 EOF
 
+cat > "$BUILD_DIR/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.service" <<EOF
+[Unit]
+Description=Guacamole gateway health check${WEBTERM_ENV_SUFFIX}
+Wants=pit-box-guacd${WEBTERM_ENV_SUFFIX}.service pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service
+After=pit-box-guacd${WEBTERM_ENV_SUFFIX}.service pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service
+
+[Service]
+Type=oneshot
+Environment=GUACD_SERVICE=pit-box-guacd${WEBTERM_ENV_SUFFIX}.service
+Environment=GUACAMOLE_SERVICE=pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service
+Environment=GUACAMOLE_CONTAINER=pit-box-guacamole${WEBTERM_ENV_SUFFIX}
+Environment=GUACD_HOSTNAME=pit-box-guacd${WEBTERM_ENV_SUFFIX}
+ExecStart=/usr/local/libexec/pit-box-check-guacamole
+TimeoutStartSec=90
+EOF
+
+cat > "$BUILD_DIR/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.timer" <<EOF
+[Unit]
+Description=Periodically verify Guacamole gateway DNS${WEBTERM_ENV_SUFFIX}
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+RandomizedDelaySec=15s
+AccuracySec=30s
+Persistent=true
+Unit=pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 cat > "$BUILD_DIR/caddy-guacamole${WEBTERM_ENV_SUFFIX}.caddy" <<EOF
 https://${REMOTE_DESKTOP_WEB_HOSTNAME} {
 	tls ${CADDY_CERTS_DIR}/server.crt ${CADDY_CERTS_DIR}/server.key {
@@ -203,5 +242,7 @@ echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/caddy-guacamole${WEBTER
 echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network"
 echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container"
 echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.service"
+echo "Rendered build/remote-desktop${WEBTERM_ENV_SUFFIX}/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.timer"
 echo "Desktop URL: https://${REMOTE_DESKTOP_WEB_HOSTNAME}/"
 echo "Credential source: ${REMOTE_DESKTOP_WEB_PASSWORD_SOURCE:-settings.env}"

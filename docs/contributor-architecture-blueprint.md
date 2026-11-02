@@ -53,11 +53,15 @@ scripts/install.sh              (distro-agnostic entry point)
 scripts/install_ubuntu.sh       (Ubuntu/Debian-specific)
 scripts/install_fedora.sh       (Fedora/RHEL-specific)
 scripts/install_remote_desktop.sh (optional xrdp/RDP over WireGuard)
+scripts/install_remote_desktop_gateway.sh (Guacamole Quadlets + health timer)
 ```
 
 Install scripts ensure WireGuard, OpenSSH, and required tools are present. The
 remote-desktop installer is opt-in and configures xrdp only when
-`REMOTE_DESKTOP_ENABLED=true`.
+`REMOTE_DESKTOP_ENABLED=true`. The browser-gateway installer deploys paired
+Guacamole/guacd Quadlets and a timer that repairs missing container DNS without
+restarting healthy sessions. Cockpit rebuilds install the rendered allowed
+Origin and forwarded-header configuration before restarting `cockpit.socket`.
 
 ### 3. Key Generation
 

@@ -222,6 +222,27 @@ sudo podman logs --tail=120 pit-box-guacamole
 sudo podman logs --tail=80 pit-box-guacd
 ```
 
+The installed health timer normally repairs a missing guacd DNS record within
+about two minutes. Check its last result and recovery log with:
+
+```bash
+sudo systemctl status pit-box-guacamole-health.timer pit-box-guacamole-health.service
+sudo journalctl -u pit-box-guacamole-health.service -n 80 --no-pager
+```
+
+If immediate recovery is needed, restart both services in one transaction:
+
+```bash
+sudo systemctl restart pit-box-guacd.service pit-box-guacamole.service
+```
+
+If a Safari session disconnects after the phone sleeps or the browser moves to
+the background, look for `User is not responding` in the guacd journal. That
+means Safari stopped answering Guacamole's required heartbeat; it is not the
+Guacamole login-token timeout. xrdp should log `reconnected session` and reuse
+the same display on the next connection. The web login itself defaults to 24
+hours of inactivity through `REMOTE_DESKTOP_WEB_SESSION_TIMEOUT_MINUTES`.
+
 On Fedora/SELinux systems the rendered compose file should mount
 `./guacamole-home:/etc/guacamole:ro,Z`, and the installer should own
 `/etc/pit-box/remote-desktop/guacamole-home` as the Guacamole container

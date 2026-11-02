@@ -42,6 +42,8 @@ GUACAMOLE_CONTAINER_GID="${REMOTE_DESKTOP_GUACAMOLE_GID:-1001}"
 GUACAMOLE_SERVICE="pit-box-guacamole${WEBTERM_ENV_SUFFIX}.service"
 GUACD_SERVICE="pit-box-guacd${WEBTERM_ENV_SUFFIX}.service"
 GUACAMOLE_CONTAINER="pit-box-guacamole${WEBTERM_ENV_SUFFIX}"
+HEALTH_SERVICE="pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.service"
+HEALTH_TIMER="pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.timer"
 REMOTE_DESKTOP_WEB_INGRESS="$(
   resolve_registry_field "$ROOT_DIR" "pit-box-remote-desktop" ingress 2>/dev/null || true
 )"
@@ -52,6 +54,8 @@ for src in \
     "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network" \
     "$BUILD_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container" \
     "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container" \
+    "$BUILD_DIR/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.service" \
+    "$BUILD_DIR/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.timer" \
     "$CADDY_SOURCE"; do
   if [[ ! -f "$src" ]]; then
     echo "Missing rendered file: $src" >&2
@@ -91,6 +95,7 @@ for ctr in remote-desktop_guacamole_1 remote-desktop_guacd_1; do
 done
 
 # Stop existing quadlet services before replacing their unit files.
+systemctl stop "$HEALTH_TIMER" &>/dev/null || true
 for svc in "$GUACAMOLE_SERVICE" "$GUACD_SERVICE"; do
   systemctl is-active "$svc" &>/dev/null && systemctl stop "$svc" || true
 done
@@ -99,9 +104,13 @@ mkdir -p "$QUADLET_DIR"
 install -m 644 "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network"   "$QUADLET_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.network"
 install -m 644 "$BUILD_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container"     "$QUADLET_DIR/pit-box-guacd${WEBTERM_ENV_SUFFIX}.container"
 install -m 644 "$BUILD_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container" "$QUADLET_DIR/pit-box-guacamole${WEBTERM_ENV_SUFFIX}.container"
+install -m 0755 "$ROOT_DIR/scripts/check_guacamole_health.sh" /usr/local/libexec/pit-box-check-guacamole
+install -m 0644 "$BUILD_DIR/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.service" "/etc/systemd/system/$HEALTH_SERVICE"
+install -m 0644 "$BUILD_DIR/pit-box-guacamole-health${WEBTERM_ENV_SUFFIX}.timer" "/etc/systemd/system/$HEALTH_TIMER"
 
 systemctl daemon-reload
-systemctl start "$GUACAMOLE_SERVICE"
+systemctl restart "$GUACD_SERVICE" "$GUACAMOLE_SERVICE"
+systemctl enable --now "$HEALTH_TIMER"
 
 if command -v curl >/dev/null 2>&1; then
   ready=false
