@@ -211,6 +211,22 @@ if [[ -f "$ROOT_DIR/configs/webterm/caddy-webterm.caddy.example" ]]; then
   fi
 fi
 
+# A clean SIGTERM (for example a user-wide kill) is not a "failure", so
+# Restart=on-failure leaves WebTerm down. Require Restart=always.
+for unit in ttyd pit-box-api; do
+  unit_example="$ROOT_DIR/configs/webterm/${unit}.service.example"
+  if [[ -f "$unit_example" ]] && ! grep -q '^Restart=always$' "$unit_example"; then
+    echo "[invalid] configs/webterm/${unit}.service.example must use Restart=always so a clean SIGTERM does not leave WebTerm down" >&2
+    exit 1
+  fi
+done
+# render_configs.sh generates the deployed units from its own heredocs, so the
+# examples alone do not prove what gets installed.
+if [[ "$(sed -n '/webterm\/ttyd\${WEBTERM_ENV_SUFFIX}.service" <</,/^EOF$/p;/webterm\/pit-box-api\${WEBTERM_ENV_SUFFIX}.service" <</,/^EOF$/p' "$ROOT_DIR/scripts/render_configs.sh" | grep -c '^Restart=always$')" -ne 2 ]]; then
+  echo "[invalid] scripts/render_configs.sh must render Restart=always for both the ttyd and pit-box-api units" >&2
+  exit 1
+fi
+
 if [[ -f "$ROOT_DIR/scripts/ttyd_session.sh" ]]; then
   if ! grep -q 'set-option -t "\$BASE_SESSION" mouse on' "$ROOT_DIR/scripts/ttyd_session.sh"; then
     echo "[invalid] scripts/ttyd_session.sh does not enable tmux mouse handling for the base WebTerm session" >&2

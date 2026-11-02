@@ -13,7 +13,7 @@ ExecStart=/usr/bin/ttyd \
   --port WEBTERM_PORT \
   --ping-interval 30 \
   login
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]

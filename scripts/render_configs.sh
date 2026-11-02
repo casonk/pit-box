@@ -190,7 +190,7 @@ User=${WEBTERM_USER}
 # ttyd_session.sh creates a grouped tmux session per connection so each browser tab
 # tracks its active window independently.
 ExecStart=/usr/bin/ttyd --writable --interface 127.0.0.1 --port ${WEBTERM_PORT} --ping-interval 30 /etc/pit-box${WEBTERM_ENV_SUFFIX}/ttyd_session.sh ${WEBTERM_TMUX_SESSION}
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]
@@ -208,7 +208,7 @@ Wants=network-online.target
 Type=simple
 User=${WEBTERM_USER}
 ExecStart=/usr/bin/python3 /etc/pit-box${WEBTERM_ENV_SUFFIX}/pit_box_api.py --port ${WEBTERM_API_PORT} --session ${WEBTERM_TMUX_SESSION} --rebuild-script ${ROOT_DIR}/scripts/rebuild_webservices.sh --settings-file ${SETTINGS_FILE} ${_api_env_args}
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]
