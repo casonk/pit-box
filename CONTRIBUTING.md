@@ -77,7 +77,7 @@ Before requesting review, confirm:
 
 ## Code of Conduct
 
-All contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+All contributors are expected to follow the [Code of Conduct](https://github.com/casonk/.github/blob/main/CODE_OF_CONDUCT.md).
 
 ## AI Contribution Disclosure
 
