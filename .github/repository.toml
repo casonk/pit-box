@@ -4,6 +4,7 @@
 [repository]
 # One line shown on GitHub. Keep it free of private repository names and local paths.
 description = "Secure iPhone-to-Linux-server access from anywhere via WireGuard, with SSH, SMB, and VPN-only web UIs."
+topics = ["wireguard", "vpn", "ssh", "remote-access", "home-server", "iphone", "shell"]
 
 [main_branch]
 # Direct commits and pushes to main are refused unless this is true.
