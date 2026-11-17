@@ -20,7 +20,11 @@
 - https://manpages.ubuntu.com/manpages/questing/man5/xrdp.ini.5.html - xrdp.ini reference for RDP bind syntax
 - https://guacamole.apache.org/doc/gug/guacamole-docker.html - Apache Guacamole Docker deployment reference
 - https://guacamole.apache.org/doc/1.6.0/gug/configuring-guacamole.html - Apache Guacamole configuration and user-mapping reference
+- http://www.apple.com/DTDs/PropertyList-1.0.dtd - Apple property-list DTD
+  referenced by the generated macOS Screen Sharing `.vncloc` launcher
 
 ## Notes
 
-- This repo intentionally avoids public SaaS integrations. Durable external references are limited to the VPN, firewall, and SSH specs it implements.
+- This repo intentionally avoids public SaaS integrations. Durable external
+  references are limited to the VPN, firewall, SSH, and remote-access formats
+  and components it implements.
